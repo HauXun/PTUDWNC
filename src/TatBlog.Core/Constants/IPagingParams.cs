@@ -1,4 +1,4 @@
-namespace TatBlog.Core.Contracts;
+namespace TatBlog.Core.Constants;
 
 public interface IPagingParams
 {

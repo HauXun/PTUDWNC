@@ -1,4 +1,4 @@
-using TatBlog.Core.Contracts;
+using TatBlog.Core.Constants;
 
 namespace TatBlog.WinApp;
 
