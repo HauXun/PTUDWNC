@@ -1,5 +1,5 @@
 using System.Collections;
-using TatBlog.Core.Contracts;
+using TatBlog.Core.Constants;
 
 namespace TatBlog.Core.Collections;
 
