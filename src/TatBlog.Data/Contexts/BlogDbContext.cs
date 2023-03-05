@@ -14,9 +14,13 @@ public class BlogDbContext : DbContext
 
   public DbSet<Tag> Tags { get; set; }
 
-  protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+  public BlogDbContext(DbContextOptions<BlogDbContext> options) : base(options)
   {
-    optionsBuilder.UseSqlServer(@"Data Source=localhost,1433; Initial Catalog=TatBlog; User ID=SA; Password=Password123; TrustServerCertificate=true; Trusted_Connection=false; MultipleActiveResultSets=true");
+  }
+
+  public BlogDbContext()
+  {
+
   }
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)

@@ -88,13 +88,13 @@ public interface IBlogRepository
   // tượng PostQuery.
   // s. Tìm và phân trang các bài viết thỏa mãn điều kiện tìm kiếm được cho trong
   // đối tượng PostQuery(kết quả trả về kiểu IPagedList<Post>)
-  Task<IPagedList<Post>> GetPostByQueryAsync(IPagingParams pagingParams, PostQuery query, CancellationToken cancellationToken = default);
+  Task<IPagedList<Post>> GetPostByQueryAsync(PostQuery query, int pageNumber = 1, int pageSize = 10, CancellationToken cancellationToken = default);
 
   // t.Tương tự câu trên nhưng yêu cầu trả về kiểu IPagedList<T>.Trong đó T
   // là kiểu dữ liệu của đối tượng mới được tạo từ đối tượng Post.Hàm này có
   // thêm một đầu vào là Func<IQueryable<Post>, IQueryable<T>> mapper
   // để ánh xạ các đối tượng Post thành các đối tượng T theo yêu cầu.
-  Task<IPagedList<T>> GetPostByQueryAsync<T>(IPagingParams pagingParams, PostQuery query, Func<IQueryable<Post>, IQueryable<T>> mapper, CancellationToken cancellationToken = default);
+  Task<IPagedList<T>> GetPostByQueryAsync<T>(PostQuery query, Func<IQueryable<Post>, IQueryable<T>> mapper, CancellationToken cancellationToken = default);
 
   #endregion
 

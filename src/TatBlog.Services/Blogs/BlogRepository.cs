@@ -114,7 +114,6 @@ public class BlogRepository : IBlogRepository
   public async Task<IList<TagItem>> GetTagListWithPostCountAsync(CancellationToken cancellationToken = default)
   {
     return await _blogContext.Set<Tag>()
-                              .Include(t => t.Posts)
                               .Select(x => new TagItem()
                               {
                                 Id = x.Id,
@@ -292,41 +291,54 @@ public class BlogRepository : IBlogRepository
     return await _blogContext.Set<Post>().OrderBy(p => Guid.NewGuid()).Take(n).ToListAsync(cancellationToken);
   }
 
-  public async Task<IPagedList<Post>> GetPostByQueryAsync(IPagingParams pagingParams, PostQuery query, CancellationToken cancellationToken = default)
+  public async Task<IPagedList<Post>> GetPostByQueryAsync(PostQuery query, int pageNumber = 1, int pageSize = 10, CancellationToken cancellationToken = default)
   {
-    IQueryable<Post> postsQuery = _blogContext.Set<Post>();
-
-    if (!string.IsNullOrEmpty(query.AuthorId))
-    {
-      postsQuery = postsQuery.Where(p => p.AuthorId.ToString().Equals(query.AuthorId));
-    }
-    if (!string.IsNullOrEmpty(query.CategoryId))
-    {
-      postsQuery = postsQuery.Where(p => p.CategoryId.ToString().Equals(query.CategoryId));
-    }
-    if (!string.IsNullOrEmpty(query.Slug))
-    {
-      postsQuery = postsQuery.Where(p => p.UrlSlug.ToString().Contains(query.Slug));
-    }
-    if (!string.IsNullOrEmpty(query.PostedDate))
-    {
-      postsQuery = postsQuery.Where(p => p.PostedDate.Date.Equals(DateTime.Parse(query.PostedDate).Date));
-    }
-
-    query.GetTagListAsync();
-    if (query.SelectedTag != null && query.SelectedTag.Count() > 0)
-    {
-      var sameTag = query.SelectedTag.Intersect(query.SelectedTag);
-      postsQuery = postsQuery.Where(p => query.SelectedTag.Any(t => sameTag.Contains(t)));
-    }
-
-    return await postsQuery.ToPagedListAsync(pagingParams, cancellationToken);
+    return await FilterPosts(query).ToPagedListAsync(
+                            pageNumber,
+                            pageSize,
+                            nameof(Post.PostedDate),
+                            "DESC",
+                            cancellationToken);
   }
 
-  public async Task<IPagedList<T>> GetPostByQueryAsync<T>(IPagingParams pagingParams, PostQuery query, Func<IQueryable<Post>, IQueryable<T>> mapper, CancellationToken cancellationToken = default)
+  public async Task<IPagedList<T>> GetPostByQueryAsync<T>(PostQuery query, Func<IQueryable<Post>, IQueryable<T>> mapper, CancellationToken cancellationToken = default)
   {
-    IQueryable<Post> postsQuery = _blogContext.Set<Post>();
+    IQueryable<T> result = mapper(FilterPosts(query));
 
+    return await result.ToPagedListAsync();
+  }
+
+  private IQueryable<Post> FilterPosts(PostQuery query)
+  {
+    IQueryable<Post> postsQuery = _blogContext.Set<Post>()
+                                              .Include(p => p.Author)
+                                              .Include(p => p.Category)
+                                              .Include(p => p.Tags);
+
+    if (!string.IsNullOrEmpty(query.Title))
+    {
+      postsQuery = postsQuery.Where(p => p.Title.Contains(query.Title));
+    }
+    if (!string.IsNullOrEmpty(query.PostSlug))
+    {
+      postsQuery = postsQuery.Where(p => p.UrlSlug.Contains(query.PostSlug));
+    }
+    if (query.PublishedOnly != null)
+    {
+      postsQuery = postsQuery.Where(p => p.Published.Equals(query.PublishedOnly));
+    }
+    if (!string.IsNullOrEmpty(query.Year))
+    {
+      postsQuery = postsQuery.Where(p => p.PostedDate.Date.Year.ToString().Equals(query.Year));
+    }
+    if (!string.IsNullOrEmpty(query.Month))
+    {
+      postsQuery = postsQuery.Where(p => p.PostedDate.Date.Month.ToString().Equals(query.Month));
+    }
+    if (!string.IsNullOrEmpty(query.Day))
+    {
+      postsQuery = postsQuery.Where(p => p.PostedDate.Date.Day.ToString().Equals(query.Day));
+    }
     if (!string.IsNullOrEmpty(query.AuthorId))
     {
       postsQuery = postsQuery.Where(p => p.AuthorId.ToString().Equals(query.AuthorId));
@@ -334,14 +346,6 @@ public class BlogRepository : IBlogRepository
     if (!string.IsNullOrEmpty(query.CategoryId))
     {
       postsQuery = postsQuery.Where(p => p.CategoryId.ToString().Equals(query.CategoryId));
-    }
-    if (!string.IsNullOrEmpty(query.Slug))
-    {
-      postsQuery = postsQuery.Where(p => p.UrlSlug.ToString().Contains(query.Slug));
-    }
-    if (!string.IsNullOrEmpty(query.PostedDate))
-    {
-      postsQuery = postsQuery.Where(p => p.PostedDate.Date.Equals(DateTime.Parse(query.PostedDate).Date));
     }
 
     query.GetTagListAsync();
@@ -351,9 +355,7 @@ public class BlogRepository : IBlogRepository
       postsQuery = postsQuery.Where(p => query.SelectedTag.Any(t => sameTag.Contains(t)));
     }
 
-    IQueryable<T> result = mapper(postsQuery);
-
-    return await result.ToPagedListAsync(pagingParams, cancellationToken);
+    return postsQuery;
   }
 
   #endregion
