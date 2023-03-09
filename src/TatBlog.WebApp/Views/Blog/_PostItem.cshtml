@@ -13,20 +13,44 @@
       <div class="col-md-8">
         <div class="card-body">
           <h5 class="card-title">
-            @Model.Title
+            <a title="@Model.Title"
+                style="text-decoration: none;"
+                asp-controller="Blog"
+                asp-action="Post"
+                asp-route-year="@Model.PostedDate.Year"
+                asp-route-month="@Model.PostedDate.Month"
+                asp-route-day="@Model.PostedDate.Day"
+                asp-route-slug="@Model.UrlSlug"
+                >
+              @Model.Title
+            </a>
           </h5>
           <p class="card-text">
             <small class="text-muted">
               Tác giả:
             </small>
             <span class="text-primary">
-              @Model.Author.FullName
+              <a title="@Model.Author.FullName"
+              style="text-decoration: none;"
+                asp-controller="Blog"
+                asp-action="Author"
+                asp-route-slug="@Model.Author.UrlSlug"
+                >
+                @Model.Author.FullName
+              </a>
             </span>
             <small class="text-muted">
               Chủ đề:
             </small>
             <span class="text-primary">
-              @Model.Category.Name
+              <a title="@Model.Category.Name"
+                style="text-decoration: none;"
+                asp-controller="Blog"
+                asp-action="Category"
+                asp-route-slug="@Model.Category.UrlSlug"
+                >
+                @Model.Category.Name
+              </a>
             </span>
           </p>
           <p class="card-text">

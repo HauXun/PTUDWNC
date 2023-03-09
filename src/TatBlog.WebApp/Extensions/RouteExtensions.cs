@@ -12,6 +12,11 @@ public static class RouteExtensions
         defaults: new { controller = "Blog", action = "Category" }
       );
     endpoints.MapControllerRoute(
+        name: "post-by-author",
+        pattern: "blog/author/{slug}",
+        defaults: new { controller = "Blog", action = "Author" }
+      );
+    endpoints.MapControllerRoute(
         name: "post-by-tag",
         pattern: "blog/tag/{slug}",
         defaults: new { controller = "Blog", action = "Tag" }

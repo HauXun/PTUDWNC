@@ -80,7 +80,7 @@
           asp-controller="Blog"
           asp-action="@actionName"
           asp-route-slug="@slug"
-          asp-route-k="@postQuery.Title"
+          asp-route-keyword="@postQuery.Keyword"
           asp-route-p="@(pagedList.PageNumber - 1)"
           asp-route-ps="@pagedList.PageSize">
           Trang trước
@@ -103,7 +103,7 @@
                 asp-controller="Blog"
                 asp-action="@actionName"
                 asp-route-slug="@slug"
-                asp-route-k="@postQuery.Title"
+                asp-route-keyword="@postQuery.Keyword"
                 asp-route-p="@pageitem"
                 asp-route-ps="@pagedList.PageSize">
                 @pageitem
@@ -126,7 +126,7 @@
           asp-controller="Blog"
           asp-action="@actionName"
           asp-route-slug="@slug"
-          asp-route-k="@postQuery.Title"
+          asp-route-keyword="@postQuery.Keyword"
           asp-route-p="@(pagedList.PageNumber + 1)"
           asp-route-ps="@pagedList.PageSize">
           Trang sau

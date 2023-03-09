@@ -1,3 +1,5 @@
+namespace TatBlog.Core.DTO;
+
 public class PostInMonthItem
 {
   public int Count { get; set; }

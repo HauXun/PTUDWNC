@@ -17,11 +17,12 @@ public class BlogRepository : IBlogRepository
 
   #region B
 
-  public async Task<Post> GetPostAsync(int year, int month, string slug, CancellationToken cancellationToken = default)
+  public async Task<Post> GetPostAsync(int year, int month, int day, string slug, CancellationToken cancellationToken = default)
   {
     IQueryable<Post> postsQuery = _blogContext.Set<Post>()
                                               .Include(x => x.Category)
-                                              .Include(x => x.Author);
+                                              .Include(x => x.Author)
+                                              .Include(x => x.Tags);
 
     if (year > 0)
     {
@@ -31,6 +32,11 @@ public class BlogRepository : IBlogRepository
     if (month > 0)
     {
       postsQuery = postsQuery.Where(x => x.PostedDate.Month == month);
+    }
+
+    if (day > 0)
+    {
+      postsQuery = postsQuery.Where(x => x.PostedDate.Day == day);
     }
 
     if (!string.IsNullOrWhiteSpace(slug))
@@ -251,29 +257,49 @@ public class BlogRepository : IBlogRepository
     return await _blogContext.Set<Post>().FindAsync(id);
   }
 
-  public async Task AddOrUpdatePostAsync(Post post, CancellationToken cancellationToken = default)
+  public async Task AddOrUpdatePostAsync(Post post, IEnumerable<string> tags, CancellationToken cancellationToken = default)
   {
-    if (post?.Id == null || _blogContext.Posts == null)
-    {
-      await _blogContext.Posts.AddAsync(post, cancellationToken);
-      await _blogContext.SaveChangesAsync(cancellationToken);
-      return;
-    }
+    if (post.Id > 0)
+		{
+			await _blogContext.Entry(post).Collection(x => x.Tags).LoadAsync(cancellationToken);
+		}
+		else
+		{
+			post.Tags = new List<Tag>();
+		}
 
-    var postGet = await _blogContext.Posts.FirstOrDefaultAsync(m => m.Id == post.Id);
-    if (postGet == null)
-    {
-      Console.WriteLine("Không có post nào để sửa");
-      return;
-    }
+		var validTags = tags.Where(x => !string.IsNullOrWhiteSpace(x))
+			.Select(x => new
+			{
+				Name = x,
+				Slug = x.GenerateSlug()
+			})
+			.GroupBy(x => x.Slug)
+			.ToDictionary(g => g.Key, g => g.First().Name);
 
-    postGet.Title = post.Title;
-    postGet.Description = post.Description;
-    postGet.UrlSlug = post.UrlSlug;
-    postGet.Published = post.Published;
 
-    _blogContext.Attach(postGet).State = EntityState.Modified;
-    await _blogContext.SaveChangesAsync();
+		foreach (var kv in validTags)
+		{
+			if (post.Tags.Any(x => string.Compare(x.UrlSlug, kv.Key, StringComparison.InvariantCultureIgnoreCase) == 0)) continue;
+
+			var tag = await GetTagBySlugAsync(kv.Key, cancellationToken) ?? new Tag()
+			{
+				Name = kv.Value,
+				Description = kv.Value,
+				UrlSlug = kv.Key
+			};
+
+			post.Tags.Add(tag);
+		}
+
+		post.Tags = post.Tags.Where(t => validTags.ContainsKey(t.UrlSlug)).ToList();
+
+		if (post.Id > 0)
+			_blogContext.Update(post);
+		else
+			_blogContext.Add(post);
+
+		await _blogContext.SaveChangesAsync(cancellationToken);
   }
 
   public async Task ChangePostStatusAsync(int id, CancellationToken cancellationToken = default)
@@ -315,44 +341,68 @@ public class BlogRepository : IBlogRepository
                                               .Include(p => p.Category)
                                               .Include(p => p.Tags);
 
-    if (!string.IsNullOrEmpty(query.Title))
-    {
-      postsQuery = postsQuery.Where(p => p.Title.Contains(query.Title));
-    }
-    if (!string.IsNullOrEmpty(query.PostSlug))
-    {
-      postsQuery = postsQuery.Where(p => p.UrlSlug.Contains(query.PostSlug));
-    }
-    if (query.PublishedOnly != null)
-    {
-      postsQuery = postsQuery.Where(p => p.Published.Equals(query.PublishedOnly));
-    }
-    if (!string.IsNullOrEmpty(query.Year))
-    {
-      postsQuery = postsQuery.Where(p => p.PostedDate.Date.Year.ToString().Equals(query.Year));
-    }
-    if (!string.IsNullOrEmpty(query.Month))
-    {
-      postsQuery = postsQuery.Where(p => p.PostedDate.Date.Month.ToString().Equals(query.Month));
-    }
-    if (!string.IsNullOrEmpty(query.Day))
-    {
-      postsQuery = postsQuery.Where(p => p.PostedDate.Date.Day.ToString().Equals(query.Day));
-    }
-    if (!string.IsNullOrEmpty(query.AuthorId))
-    {
-      postsQuery = postsQuery.Where(p => p.AuthorId.ToString().Equals(query.AuthorId));
-    }
-    if (!string.IsNullOrEmpty(query.CategoryId))
-    {
-      postsQuery = postsQuery.Where(p => p.CategoryId.ToString().Equals(query.CategoryId));
-    }
+		if (query.PublishedOnly)
+		{
+			postsQuery = postsQuery.Where(x => x.Published == query.PublishedOnly);
+		}
+
+		if (query.CategoryId > 0)
+		{
+			postsQuery = postsQuery.Where(x => x.CategoryId == query.CategoryId);
+		}
+		if (query.AuthorId > 0)
+		{
+			postsQuery = postsQuery.Where(x => x.AuthorId == query.AuthorId);
+		}
+
+		if (!string.IsNullOrWhiteSpace(query.AuthorSlug))
+		{
+			postsQuery = postsQuery.Where(x => x.Author.UrlSlug == query.AuthorSlug);
+		}
+
+		if (!string.IsNullOrWhiteSpace(query.CategorySlug))
+		{
+			postsQuery = postsQuery.Where(x => x.Category.UrlSlug == query.CategorySlug);
+		}
+
+		if (!string.IsNullOrWhiteSpace(query.TagSlug))
+		{
+			postsQuery = postsQuery.Where(x => x.Tags.Any(t => t.UrlSlug == query.TagSlug));
+		}
+
+		if (!string.IsNullOrWhiteSpace(query.PostSlug))
+		{
+			postsQuery = postsQuery.Where(x => x.UrlSlug == query.PostSlug);
+		}
+
+		if (!string.IsNullOrWhiteSpace(query.Keyword))
+		{
+			postsQuery = postsQuery.Where(x => x.Title.Contains(query.Keyword) ||
+									 x.ShortDescription.Contains(query.Keyword) ||
+									 x.Description.Contains(query.Keyword) ||
+									 x.Category.Name.Contains(query.Keyword) ||
+									 x.Tags.Any(t => t.Name.Contains(query.Keyword)));
+		}
+
+		if (query.Year > 0)
+		{
+			postsQuery = postsQuery.Where(x => x.PostedDate.Year == query.Year);
+		}
+
+		if (query.Month > 0)
+		{
+			postsQuery = postsQuery.Where(x => x.PostedDate.Month == query.Month);
+		}
+
+		if (query.Day > 0)
+		{
+			postsQuery = postsQuery.Where(x => x.PostedDate.Day == query.Day);
+		}
 
     query.GetTagListAsync();
     if (query.SelectedTag != null && query.SelectedTag.Count() > 0)
     {
-      var sameTag = query.SelectedTag.Intersect(query.SelectedTag);
-      postsQuery = postsQuery.Where(p => query.SelectedTag.Any(t => sameTag.Contains(t)));
+      postsQuery = postsQuery.Where(p => query.SelectedTag.Intersect(p.Tags.Select(t => t.Name)).Count() > 0);
     }
 
     return postsQuery;
@@ -457,4 +507,16 @@ public class BlogRepository : IBlogRepository
   }
 
   #endregion
+
+  public async Task<IList<Tag>> GetTagListAsync(CancellationToken cancellationToken = default)
+  {
+    return await _blogContext.Set<Tag>()
+                              .Select(x => new Tag()
+                              {
+                                Id = x.Id,
+                                Name = x.Name,
+                                UrlSlug = x.UrlSlug,
+                                Description = x.Description,
+                              }).ToListAsync(cancellationToken);
+  }
 }

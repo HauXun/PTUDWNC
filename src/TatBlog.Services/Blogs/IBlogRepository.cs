@@ -10,7 +10,7 @@ public interface IBlogRepository
 
   // Tìm bài viết có tên định danh là 'slug
   // và được đăng vào tháng 'month' năm 'year'
-  Task<Post> GetPostAsync(int year, int month, string slug, CancellationToken cancellationToken = default);
+  Task<Post> GetPostAsync(int year, int month, int day, string slug, CancellationToken cancellationToken = default);
 
   // Tìm top (n) bài viết phổ biến được nhiều người xem nhất
   Task<IList<Post>> GetPopularArticlesAsync(int numPosts, CancellationToken cancellationToken = default);
@@ -71,7 +71,7 @@ public interface IBlogRepository
   Task<Post> GetPostByIdAsync(int id, CancellationToken cancellationToken = default);
 
   // m. Thêm hay cập nhật một bài viết. 
-  Task AddOrUpdatePostAsync(Post post, CancellationToken cancellationToken = default);
+  Task AddOrUpdatePostAsync(Post post, IEnumerable<string> tags, CancellationToken cancellationToken = default);
 
   // n. Chuyển đổi trạng thái Published của bài viết. 
   Task ChangePostStatusAsync(int id, CancellationToken cancellationToken = default);
@@ -104,7 +104,7 @@ public interface IBlogRepository
   Task<Author> GetAuthorByIdAsync(int id, CancellationToken cancellationToken);
 
   // c. Tìm một tác giả theo tên định danh (slug)
-  Task<Author> GetAuthorBySlugAsync(string slug, CancellationToken cancellationToken);
+  Task<Author> GetAuthorBySlugAsync(string slug, CancellationToken cancellationToken = default);
 
   // d. Lấy và phân trang danh sách tác giả kèm theo số lượng bài viết của tác giả
   // đó.Kết quả trả về kiểu IPagedList<AuthorItem>
@@ -117,4 +117,6 @@ public interface IBlogRepository
   Task<IList<Author>> Find_N_MostPostByAuthorAsync(int n, CancellationToken cancellationToken = default);
 
   #endregion
+
+  Task<IList<Tag>> GetTagListAsync(CancellationToken cancellationToken = default);
 }

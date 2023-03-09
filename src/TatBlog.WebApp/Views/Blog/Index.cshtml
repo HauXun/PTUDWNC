@@ -5,11 +5,21 @@
   var postQuery = (ViewData["PostQuery"] as PostQuery) ?? new PostQuery();
 }
 
+@await Component.InvokeAsync("BestAuthors")
+
+<hr>
+
 <div class="p-4">
-  @if (!string.IsNullOrWhiteSpace(postQuery.Title))
+  @if (!string.IsNullOrWhiteSpace(postQuery.Keyword))
   {
     <h3 class="text-primary mb-3">
-      Những bài viết chứa tiêu đề '@postQuery.Title'
+      Những bài viết chứa tiêu đề '@postQuery.Keyword'
+    </h3>
+  }
+  else
+  {
+    <h3 class="text-success mb-3">
+      Danh sách bài viết
     </h3>
   }
   

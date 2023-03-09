@@ -1,3 +1,5 @@
+namespace TatBlog.Core.DTO;
+
 public class AuthorItem
 {
   public int Id { get; set; }

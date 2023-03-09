@@ -1,12 +1,14 @@
+namespace TatBlog.Core.DTO;
+
 public class PostQuery
 {
-  public string Title { get; set; }
-  public bool? PublishedOnly { get; set; }
-  public string Year { get; set; }
-  public string Month { get; set; }
-  public string Day { get; set; }
-  public string AuthorId { get; set; }
-  public string CategoryId { get; set; }
+  public string Keyword { get; set; }
+  public bool PublishedOnly { get; set; }
+  public int Year { get; set; }
+  public int Month { get; set; }
+  public int Day { get; set; }
+  public int AuthorId { get; set; }
+  public int CategoryId { get; set; }
   public string Tags { get; set; }
   public string PostSlug { get; set; }
   public string AuthorSlug { get; set; }

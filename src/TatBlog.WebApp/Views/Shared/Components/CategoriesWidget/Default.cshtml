@@ -7,8 +7,9 @@
   <ul class="list-group">
     @foreach (var item in Model)
     {
-      <li class="list-group-item">
+      <li class="list-group-item text-primary">
         <a title="@item.Description"
+            style="text-decoration: none;"
             asp-controller="Blog"
             asp-action="Category"
             asp-route-slug="@item.UrlSlug"
