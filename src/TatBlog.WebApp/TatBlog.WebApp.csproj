@@ -4,9 +4,22 @@
     <ProjectReference Include="..\TatBlog.Data\TatBlog.Data.csproj" />
     <ProjectReference Include="..\TatBlog.Services\TatBlog.Services.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentValidation.AspNetCore" Version="11.2.2" />
+    <PackageReference Include="Mapster.DependencyInjection" Version="1.0.0" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="7.0.4" />
+    <PackageReference Include="NLog.Web.AspNetCore" Version="5.2.2" />
+  </ItemGroup>
+  <!-- <ItemGroup>
+    <Content Include="nlog.config">
+      PreserveNewest
+      <CopyToOutputDirectory>Copy if newer</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup> -->
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <!-- <EnableDefaultContentItems>false</EnableDefaultContentItems> -->
   </PropertyGroup>
 </Project>

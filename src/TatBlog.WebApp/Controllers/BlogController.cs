@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using TatBlog.Core.Collections;
 using TatBlog.Core.DTO;
 using TatBlog.Core.Entities;
 using TatBlog.Data.Contexts;
@@ -36,6 +37,8 @@ public class BlogController : Controller
 
     // Truy vấn các bài viết theo điều kiện đã tạo
     var postsList = await _blogRepository.GetPostByQueryAsync(postQuery, pageNumber, pageSize);
+
+    (postsList as PagedList<Post>).PageNumber = pageNumber;
 
     // Lưu lại điều kiện truy vấn để hiển thị trong View
     ViewData["PostQuery"] = postQuery;

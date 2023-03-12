@@ -21,9 +21,9 @@
 }
 
 @{
-    if (pagedList.IsFirstPage) return;
+    if (pagedList.PageCount <= 1) return;
 
-    if (!pagedList.IsLastPage) 
+    if (pagedList.IsLastPage) 
       pagedList.PageNumber = pagedList.TotalItemCount;
 
     // Các trang hiện thị trong điều hướng
@@ -79,6 +79,7 @@
         <a class="page-link"
           asp-controller="Blog"
           asp-action="@actionName"
+          asp-area=""
           asp-route-slug="@slug"
           asp-route-keyword="@postQuery.Keyword"
           asp-route-p="@(pagedList.PageNumber - 1)"
@@ -102,6 +103,7 @@
               <a class="page-link"
                 asp-controller="Blog"
                 asp-action="@actionName"
+                asp-area=""
                 asp-route-slug="@slug"
                 asp-route-keyword="@postQuery.Keyword"
                 asp-route-p="@pageitem"
@@ -125,6 +127,7 @@
         <a class="page-link"
           asp-controller="Blog"
           asp-action="@actionName"
+          asp-area=""
           asp-route-slug="@slug"
           asp-route-keyword="@postQuery.Keyword"
           asp-route-p="@(pagedList.PageNumber + 1)"

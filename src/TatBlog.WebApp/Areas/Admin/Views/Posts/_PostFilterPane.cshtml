@@ -1,0 +1,44 @@
+@model PostFilterModel
+
+<form method="get"
+      class="row gy-2 gx-3 align-items-center"
+      asp-area="Admin"
+      asp-controller="Posts"
+      asp-action="Index">
+  <div class="col-auto">
+    <label class="visually-hidden" asp-for="Keyword"></label>
+    <input type="text" class="form-control" placeholder="Nhập từ khóa ..." asp-for="Keyword">
+  </div>
+  <div class="col-auto">
+    <label class="visually-hidden" asp-for="AuthorId"></label>
+    <select asp-for="AuthorId" asp-items="Model.AuthorList" class="form-select">
+      <option value="" selected>-- Chọn tác giả</option>
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="visually-hidden" asp-for="CategoryId"></label>
+    <select asp-for="CategoryId" asp-items="Model.CategoryList" class="form-select">
+      <option value="" selected>-- Chọn chủ đề</option>
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="visually-hidden" asp-for="Year"></label>
+    <input type="text" class="form-control" placeholder="Nhập năm ..." asp-for="Year">
+  </div>
+  <div class="col-auto">
+    <label class="visually-hidden" asp-for="Keyword"></label>
+    <select asp-for="Month" asp-items="Model.MonthList" class="form-select">
+      <option value="" selected>-- Chọn tháng</option>
+    </select>
+  </div>
+
+  <div class="col-auto">
+    <button type="submit" class="btn btn-primary">Tìm lọc</button>
+    <a class="btn btn-success"
+       asp-area="Admin"
+       asp-controller="Posts"
+       asp-action="Edit">
+       Thêm mới
+    </a>
+  </div>
+</form>

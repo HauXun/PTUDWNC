@@ -1,7 +1,10 @@
 using Microsoft.EntityFrameworkCore;
+using NLog.Web;
 using TatBlog.Data.Contexts;
 using TatBlog.Data.Seeders;
 using TatBlog.Services.Blogs;
+using TatBlog.Services.Media;
+using TatBlog.WebApp.Middlewares;
 
 namespace TatBlog.WebApp.Extensions;
 
@@ -13,6 +16,15 @@ public static class WebApplicationExtension
     // Thêm các dịch vụ được yêu cầu bởi MVC Framwork
     builder.Services.AddControllersWithViews();
     builder.Services.AddResponseCompression();
+
+    return builder;
+  }
+
+  // Cấu hình việc sử dụng NLog
+  public static WebApplicationBuilder ConfigureNLog(this WebApplicationBuilder builder)
+  {
+    builder.Logging.ClearProviders();
+    builder.Host.UseNLog();
 
     return builder;
   }
@@ -33,6 +45,7 @@ public static class WebApplicationExtension
     });
     builder.Services.AddScoped<IBlogRepository, BlogRepository>();
     builder.Services.AddScoped<IDataSeeder, DataSeeder>();
+    builder.Services.AddScoped<IMediaManager, LocalFileSystemMediaManager>();
 
     return builder;
   }
@@ -59,6 +72,8 @@ public static class WebApplicationExtension
     // Thêm middware phục vụ các yêu cầu liên quan
     // tới các tập tin nội dung tĩnh như hình ảnh, css, ...
     app.UseStaticFiles();
+
+    // app.UseMiddleware<UserActivityMiddleware>();
 
     // Thêm middware lựa chọn endpoint phù hợp nhất
     // để xử lý một HTTP request.

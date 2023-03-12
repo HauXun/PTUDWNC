@@ -252,9 +252,20 @@ public class BlogRepository : IBlogRepository
     return await result.ToListAsync(cancellationToken);
   }
 
-  public async Task<Post> GetPostByIdAsync(int id, CancellationToken cancellationToken = default)
+  public async Task<Post> GetPostByIdAsync(int id, bool published = false, CancellationToken cancellationToken = default)
   {
-    return await _blogContext.Set<Post>().FindAsync(id);
+    IQueryable<Post> postQuery = _blogContext.Set<Post>()
+                             .Include(p => p.Category)
+                             .Include(p => p.Author)
+                             .Include(p => p.Tags);
+
+    if (published)
+    {
+      postQuery = postQuery.Where(x => x.Published);
+    }
+
+    return await postQuery.Where(p => p.Id.Equals(id))
+                          .FirstOrDefaultAsync(cancellationToken);
   }
 
   public async Task AddOrUpdatePostAsync(Post post, IEnumerable<string> tags, CancellationToken cancellationToken = default)
@@ -276,7 +287,6 @@ public class BlogRepository : IBlogRepository
 			})
 			.GroupBy(x => x.Slug)
 			.ToDictionary(g => g.Key, g => g.First().Name);
-
 
 		foreach (var kv in validTags)
 		{
@@ -422,7 +432,7 @@ public class BlogRepository : IBlogRepository
     return await _blogContext.Authors.FindAsync(slug, cancellationToken);
   }
 
-  public async Task<IPagedList<AuthorItem>> GetAuthorsAsync(IPagingParams pagingParams, CancellationToken cancellationToken = default)
+  public async Task<IList<AuthorItem>> GetAuthorsAsync(CancellationToken cancellationToken = default)
   {
     var tagQuery = _blogContext.Set<Author>()
                               .Select(x => new AuthorItem()
@@ -436,7 +446,7 @@ public class BlogRepository : IBlogRepository
                                 PostCount = x.Posts.Count(p => p.Published)
                               });
 
-    return await tagQuery.ToPagedListAsync(pagingParams, cancellationToken);
+    return await tagQuery.ToListAsync(cancellationToken);
   }
 
   public async Task AddOrUpdateAuthorAsync(Author author, CancellationToken cancellationToken = default)
