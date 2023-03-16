@@ -1,30 +1,18 @@
-@model IPagedList<Post>
+@model IPagedList
 
 @{
   var postQuery = (ViewData["PostQuery"] as PostQuery) ?? new PostQuery();
-  var actionName = "Index";
+  var pagerQuery = (ViewData["PagerQuery"] as PagerQuery) ?? new PagerQuery();
   var slug = "";
-  var pagedList = Model as PagedList<Post>;
-
-  if (!string.IsNullOrWhiteSpace(postQuery.AuthorSlug))
-  {
-    actionName = "Author";
-  }
-  else if (!string.IsNullOrWhiteSpace(postQuery.TagSlug))
-  {
-    actionName = "Tag";
-  }
-  else if (!string.IsNullOrWhiteSpace(postQuery.CategorySlug))
-  {
-    actionName = "Category";
-  }
+  var pagedList = Model;
 }
 
 @{
+    int currentPage = pagedList.PageNumber;
     if (pagedList.PageCount <= 1) return;
 
     if (pagedList.IsLastPage) 
-      pagedList.PageNumber = pagedList.TotalItemCount;
+      currentPage = pagedList.PageCount;
 
     // Các trang hiện thị trong điều hướng
     List<int> pagesRanges = new List<int>();    
@@ -32,17 +20,17 @@
     int delta      = 5;             // Số trang mở rộng về mỗi bên trang hiện tại     
     int remain     = delta * 2;     // Số trang hai bên trang hiện tại
 
-    pagesRanges.Add(pagedList.PageNumber);
+    pagesRanges.Add(currentPage);
     // Các trang phát triển về hai bên trang hiện tại
     for (int i = 1; i <= delta; i++)
     {
-        if (pagedList.PageNumber + i  <= pagedList.TotalItemCount) {
-            pagesRanges.Add(pagedList.PageNumber + i); 
+        if (currentPage + i  <= pagedList.PageCount) {
+            pagesRanges.Add(currentPage + i); 
             remain --;
         }
                
-        if (pagedList.PageNumber - i >= 1) {
-            pagesRanges.Insert(0, pagedList.PageNumber - i);
+        if (currentPage - i >= 1) {
+            pagesRanges.Insert(0, currentPage - i);
             remain --;
         }
             
@@ -53,7 +41,7 @@
         if (pagesRanges[0] == 1) {
             for (int i = 1; i <= remain; i++)
             {
-                if (pagesRanges.Last() + 1 <= pagedList.TotalItemCount) {
+                if (pagesRanges.Last() + 1 <= pagedList.PageCount) {
                     pagesRanges.Add(pagesRanges.Last() + 1);
                 }
             }
@@ -77,12 +65,12 @@
     {
       <li class="page-item">
         <a class="page-link"
-          asp-controller="Blog"
-          asp-action="@actionName"
-          asp-area=""
+          asp-controller="@pagerQuery.Controller"
+          asp-action="@pagerQuery.Action"
+          asp-area="@pagerQuery.Area"
           asp-route-slug="@slug"
           asp-route-keyword="@postQuery.Keyword"
-          asp-route-p="@(pagedList.PageNumber - 1)"
+          asp-route-p="@(currentPage - 1)"
           asp-route-ps="@pagedList.PageSize">
           Trang trước
         </a>
@@ -98,12 +86,12 @@
     <!-- Numbered page links -->
     @foreach (var pageitem in pagesRanges)
     {
-        if (pageitem != pagedList.PageNumber) {
+        if (pageitem != currentPage) {
             <li class="page-item">
               <a class="page-link"
-                asp-controller="Blog"
-                asp-action="@actionName"
-                asp-area=""
+                asp-controller="@pagerQuery.Controller"
+                asp-action="@pagerQuery.Action"
+                asp-area="@pagerQuery.Area"
                 asp-route-slug="@slug"
                 asp-route-keyword="@postQuery.Keyword"
                 asp-route-p="@pageitem"
@@ -125,12 +113,12 @@
     {
       <li class="page-item">
         <a class="page-link"
-          asp-controller="Blog"
-          asp-action="@actionName"
-          asp-area=""
+          asp-controller="@pagerQuery.Controller"
+          asp-action="@pagerQuery.Action"
+          asp-area="@pagerQuery.Area"
           asp-route-slug="@slug"
           asp-route-keyword="@postQuery.Keyword"
-          asp-route-p="@(pagedList.PageNumber + 1)"
+          asp-route-p="@(currentPage + 1)"
           asp-route-ps="@pagedList.PageSize">
           Trang sau
         </a>

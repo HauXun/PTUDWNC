@@ -6,32 +6,26 @@ namespace TatBlog.WebApp.Controllers;
 
 public class NewsLetterController: Controller
 {
-  private readonly IBlogRepository _blogRepository;
+  private readonly ISubscriberRepository _subscriberRepository;
 
-  public NewsLetterController(IBlogRepository blogRepository)
+  public NewsLetterController(ISubscriberRepository subscriberRepository)
   {
-    _blogRepository = blogRepository;
+    _subscriberRepository = subscriberRepository;
   }
-
-  public NewsLetterController()
-  {
-    
-  }
-
-  [Required(ErrorMessage = "Phải nhập {0}")]
-  [EmailAddress(ErrorMessage = "Sai định dạng {0}")]
-  [Display(Name = "Email")]
-  public string Email { get; set; }
 
   public async Task<IActionResult> Subscribe(string email)
   {
+    var subscription = await _subscriberRepository.SubscribeAsync(email);
+    if (!subscription)
+      return Content("Đã xảy ra lỗi khi đăng ký với email!");
 
-    return RedirectToPage("/");
+    return Redirect(Request.Headers["Referer"].ToString());
   }
 
   public async Task<IActionResult> Unsubscribe(string email)
   {
+    await _subscriberRepository.UnsubscribeAsync(email, "Không có nhu cầu nữa", true);
 
-    return RedirectToPage("/");
+    return RedirectToAction("Index", "Blog");
   }
 }

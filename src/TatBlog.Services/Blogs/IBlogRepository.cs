@@ -6,8 +6,6 @@ namespace TatBlog.Services.Blogs;
 
 public interface IBlogRepository
 {
-  #region B
-
   // Tìm bài viết có tên định danh là 'slug
   // và được đăng vào tháng 'month' năm 'year'
   Task<Post> GetPostAsync(int year, int month, int day, string slug, CancellationToken cancellationToken = default);
@@ -20,47 +18,6 @@ public interface IBlogRepository
 
   // Tăng số lượt xem của một bài viết
   Task IncreaseViewCountAsync(int postId, CancellationToken cancellationToken = default);
-
-  // Lấy danh sách chuyên mục và số lượng bài viết
-  // nằm thuộc từng chuyên mục/ chủ đề
-  Task<IList<CategoryItem>> GetCategoriesAsync(bool showOnMenu = false, CancellationToken cancellationToken = default);
-
-  // Lấy danh sách từ khóa/ thẻ và phân trang theo
-  // các tham số pagingParams
-  Task<IPagedList<TagItem>> GetPagedTagsAsync(IPagingParams pagingParams, CancellationToken cancellationToken = default);
-
-  #endregion
-
-  #region 1.C
-
-  // a. Tìm một thẻ (Tag) theo tên định danh (slug) 
-  Task<Tag> GetTagBySlugAsync(string slug, CancellationToken cancellationToken = default);
-
-  // c. Lấy danh sách tất cả các thẻ (Tag) kèm theo số bài viết chứa thẻ đó. Kết
-  // quả trả về kiểu IList<TagItem>.
-  Task<IList<TagItem>> GetTagListWithPostCountAsync(CancellationToken cancellationToken = default);
-
-  // d. Xóa một thẻ theo mã cho trước. 
-  Task DeleteTagByIdAsync(int? id, CancellationToken cancellationToken = default);
-
-  // e. Tìm một chuyên mục (Category) theo tên định danh (slug)
-  Task<Category> GetCategoryBySlugAsync(string slug, CancellationToken cancellationToken = default);
-
-  // f. Tìm một chuyên mục theo mã số cho trước
-  Task<Category> GetCategoryByIdAsync(int id, CancellationToken cancellationToken = default);
-
-  // g. Thêm hoặc cập nhật một chuyên mục/chủ đề
-  Task AddOrUpdateCategoryAsync(Category category, CancellationToken cancellationToken = default);
-
-  // h. Xóa một chuyên mục theo mã số cho trước. 
-  Task DeleteCategoryByIdAsync(int? id, CancellationToken cancellationToken = default);
-
-  // i. Kiểm tra tên định danh (slug) của một chuyên mục đã tồn tại hay chưa. 
-  Task<bool> CheckCategorySlugExisted(string slug);
-
-  // j. Lấy và phân trang danh sách chuyên mục, kết quả trả về kiểu
-  // IPagedList<CategoryItem>.
-  Task<IPagedList<CategoryItem>> GetPagedCategoriesAsync(IPagingParams pagingParams, CancellationToken cancellationToken = default);
 
   // k. Đếm số lượng bài viết trong N tháng gần nhất. N là tham số đầu vào. Kết
   // quả là một danh sách các đối tượng chứa các thông tin sau: Năm, Tháng, Số
@@ -96,27 +53,5 @@ public interface IBlogRepository
   // để ánh xạ các đối tượng Post thành các đối tượng T theo yêu cầu.
   Task<IPagedList<T>> GetPostByQueryAsync<T>(PostQuery query, Func<IQueryable<Post>, IQueryable<T>> mapper, CancellationToken cancellationToken = default);
 
-  #endregion
-
-  #region 2.C
-
-  // b. Tìm một tác giả theo mã số. 
-  Task<Author> GetAuthorByIdAsync(int id, CancellationToken cancellationToken);
-
-  // c. Tìm một tác giả theo tên định danh (slug)
-  Task<Author> GetAuthorBySlugAsync(string slug, CancellationToken cancellationToken = default);
-
-  // d. Lấy và phân trang danh sách tác giả kèm theo số lượng bài viết của tác giả
-  // đó.Kết quả trả về kiểu IPagedList<AuthorItem>
-  Task<IList<AuthorItem>> GetAuthorsAsync(CancellationToken cancellationToken = default);
-
-  // e. Thêm hoặc cập nhật thông tin một tác giả.
-  Task AddOrUpdateAuthorAsync(Author author, CancellationToken cancellationToken = default);
-
-  // f. Tìm danh sách N tác giả có nhiều bài viết nhất. N là tham số đầu vào. 
-  Task<IList<Author>> Find_N_MostPostByAuthorAsync(int n, CancellationToken cancellationToken = default);
-
-  #endregion
-
-  Task<IList<Tag>> GetTagListAsync(CancellationToken cancellationToken = default);
+  Task<bool> DeletePostByIdAsync(int? id, CancellationToken cancellationToken = default);
 }

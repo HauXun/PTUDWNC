@@ -5,16 +5,16 @@ namespace TatBlog.WebApp.Components;
 
 public class BestAuthors : ViewComponent
 {
-  private readonly IBlogRepository _blogRepository;
+  private readonly IAuthorRepository _authorRepository;
 
-  public BestAuthors(IBlogRepository blogRepository)
+  public BestAuthors(IAuthorRepository authorRepository)
   {
-    _blogRepository = blogRepository;
+    _authorRepository = authorRepository;
   }
 
   public async Task<IViewComponentResult> InvokeAsync()
   {
-    var authors = await _blogRepository.Find_N_MostPostByAuthorAsync(4);
+    var authors = await _authorRepository.Find_N_MostPostByAuthorAsync(4);
     
     return View(authors);
   }

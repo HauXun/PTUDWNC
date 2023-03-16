@@ -11,12 +11,14 @@ namespace TatBlog.WebApp.Controllers;
 public class BlogController : Controller
 {
   private readonly IBlogRepository _blogRepository;
-  private readonly BlogDbContext _context;
+  private readonly ITagRepository _tagRepository;
+  private readonly ICommentRepository _commentRepository;
 
-  public BlogController(IBlogRepository blogRepository, BlogDbContext context)
+  public BlogController(IBlogRepository blogRepository, ITagRepository tagRepository, ICommentRepository commentRepository)
   {
     _blogRepository = blogRepository;
-    _context = context;
+    _tagRepository = tagRepository;
+    _commentRepository = commentRepository;
   }
 
   public async Task<IActionResult> Index(
@@ -38,10 +40,14 @@ public class BlogController : Controller
     // Truy vấn các bài viết theo điều kiện đã tạo
     var postsList = await _blogRepository.GetPostByQueryAsync(postQuery, pageNumber, pageSize);
 
-    (postsList as PagedList<Post>).PageNumber = pageNumber;
-
     // Lưu lại điều kiện truy vấn để hiển thị trong View
     ViewData["PostQuery"] = postQuery;
+    ViewData["PagerQuery"] = new PagerQuery
+    {
+      Area = "",
+      Controller = "Blog",
+      Action = "Index",
+    };
 
     return View(postsList);
   }
@@ -87,7 +93,7 @@ public class BlogController : Controller
     };
 
     var posts = await _blogRepository.GetPostByQueryAsync(postQuery);
-    var tag = await _blogRepository.GetTagBySlugAsync(slug);
+    var tag = await _tagRepository.GetTagBySlugAsync(slug);
 
     ViewData["Tag"] = tag;
 
@@ -116,6 +122,8 @@ public class BlogController : Controller
       await _blogRepository.IncreaseViewCountAsync(post.Id);
     }
 
+    ViewData["Comments"] = await _commentRepository.GetCommentByPostIdAsync(post.Id);
+
     return View(post);
   }
 
@@ -139,4 +147,26 @@ public class BlogController : Controller
   public IActionResult Contact() => View();
 
   public IActionResult Rss() => View("Nội dung sẽ được cập nhập");
+
+  [HttpPost]
+  public async Task<IActionResult> Comment(int postId, string commentUsername, string commentContent)
+  {
+    Comment comment = new Comment
+    {
+      UserName = commentUsername,
+      Content = commentContent,
+      PostDate = DateTime.Now,
+      Censored = false,
+      PostID = postId
+    };
+
+    var added = await _commentRepository.AddCommentAsync(comment);
+
+    if (!added)
+    {
+      return Content("Không thể tải lên bình luận của bạn! Hãy thử lại thao tác này");
+    }
+
+    return Redirect(Request.Headers["Referer"].ToString());
+  }
 }

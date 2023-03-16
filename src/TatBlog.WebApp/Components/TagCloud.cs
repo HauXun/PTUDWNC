@@ -5,16 +5,16 @@ namespace TatBlog.WebApp.Components;
 
 public class TagCloud : ViewComponent
 {
-  private readonly IBlogRepository _blogRepository;
+  private readonly ITagRepository _tagRepository;
 
-  public TagCloud(IBlogRepository blogRepository)
+  public TagCloud(ITagRepository tagRepository)
   {
-    _blogRepository = blogRepository;
+    _tagRepository = tagRepository;
   }
 
   public async Task<IViewComponentResult> InvokeAsync()
   {
-    var tags = await _blogRepository.GetTagListAsync();
+    var tags = await _tagRepository.GetTagListAsync();
     
     return View(tags);
   }

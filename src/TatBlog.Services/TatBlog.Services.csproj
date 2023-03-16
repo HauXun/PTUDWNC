@@ -4,6 +4,8 @@
     <ProjectReference Include="..\TatBlog.Data\TatBlog.Data.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="MailKit" Version="3.6.0" />
+    <PackageReference Include="MimeKit" Version="3.6.0" />
     <PackageReference Include="System.Linq.Dynamic.Core" Version="1.2.25" />
   </ItemGroup>
   <PropertyGroup>

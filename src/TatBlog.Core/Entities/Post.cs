@@ -51,4 +51,5 @@ public class Post : IEntity
 
   // Danh sách các từ khóa của bài viết
   public IList<Tag> Tags { get; set; }
+  public IList<Comment> Comments { get; set; }
 }

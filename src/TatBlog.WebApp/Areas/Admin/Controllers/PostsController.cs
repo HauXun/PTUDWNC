@@ -15,38 +15,59 @@ public class PostsController : Controller
 {
   private readonly ILogger<PostsController> _logger;
   private readonly IBlogRepository _blogRepository;
+  private readonly IAuthorRepository _authorRepository;
+  private readonly ICategoryRepository _categoryRepository;
   private readonly IMediaManager _mediaManager;
   private readonly IMapper _mapper;
+  private readonly IValidator<PostEditModel> _postValidator;
 
-  public PostsController(IBlogRepository blogRepository, IMapper mapper, IMediaManager mediaManager = null, ILogger<PostsController> logger = null)
+  public PostsController(IBlogRepository blogRepository, IMapper mapper, IMediaManager mediaManager, ILogger<PostsController> logger, IAuthorRepository authorRepository, ICategoryRepository categoryRepository, IValidator<PostEditModel> postValidator)
   {
     _blogRepository = blogRepository;
     _mapper = mapper;
     _mediaManager = mediaManager;
     _logger = logger;
+    _authorRepository = authorRepository;
+    _categoryRepository = categoryRepository;
+    _postValidator = postValidator;
   }
 
-  public async Task<IActionResult> Index(PostFilterModel model)
+  public async Task<IActionResult> Index(PostFilterModel model, [FromQuery(Name = "p")] int pageNumber = 1, [FromQuery(Name = "ps")] int pageSize = 10)
   {
-    _logger.LogInformation("Tạo điều kiện truy vấn");
+    // _logger.LogInformation("Tạo điều kiện truy vấn");
 
     // Sử dụng Mapster để tạo đối tượng PostQuery
     // từ đối tượng PostFilterModel
     var postQuery = _mapper.Map<PostQuery>(model);
 
-    // var postQuery = new PostQuery{
-    //   Keyword = model.Keyword,
-    //   CategoryId = model.CategoryId,
-    //   AuthorId = model.AuthorId,
-    //   Year = model.Year,
-    //   Month = model.Month,
-    // };
+    // _logger.LogInformation("Lấy danh sách bài viết từ CSDL");
 
-    _logger.LogInformation("Lấy danh sách bài viết từ CSDL");
+    // ViewData["PostsList"] = await _blogRepository.GetPostByQueryAsync<PostItem>(postQuery, (post) => {
+    //   return post.Select(p => new PostItem {
+    //     Id = p.Id,
+    //     Title = p.Title,
+    //     ShortDescription = p.ShortDescription,
+    //     Description = p.Description,
+    //     Meta = p.Meta,
+    //     UrlSlug = p.UrlSlug,
+    //     ImageUrl = p.ImageUrl,
+    //     ViewCount = p.ViewCount,
+    //     Published = p.Published,
+    //     CategoryName = p.Category.Name,
+    //     AuthorName = p.Author.FullName,
+    //     Tags = p.Tags.Select(t => t.Name)
+    //   });
+    // });
 
-    ViewData["PostsList"] = await _blogRepository.GetPostByQueryAsync(postQuery);
+    ViewData["PostsList"] = await _blogRepository.GetPostByQueryAsync(postQuery, pageNumber, pageSize);
+    ViewData["PagerQuery"] = new PagerQuery
+    {
+      Area = "Admin",
+      Controller = "Posts",
+      Action = "Index",
+    };
 
-    _logger.LogInformation("Chuẩn bị dữ liệu cho ViewModel");
+    // _logger.LogInformation("Chuẩn bị dữ liệu cho ViewModel");
 
     await PopulatePostFilterModelAsync(model);
 
@@ -55,8 +76,8 @@ public class PostsController : Controller
 
   private async Task PopulatePostFilterModelAsync(PostFilterModel model)
   {
-    var authors = await _blogRepository.GetAuthorsAsync();
-    var categories = await _blogRepository.GetCategoriesAsync();
+    var authors = await _authorRepository.GetAuthorsAsync();
+    var categories = await _categoryRepository.GetCategoriesAsync();
 
     model.AuthorList = authors.Select(a => new SelectListItem{
       Text = a.FullName,
@@ -87,8 +108,8 @@ public class PostsController : Controller
 
   private async Task PopulatePostEditModelAsync(PostEditModel model)
   {
-    var authors = await _blogRepository.GetAuthorsAsync();
-    var categories = await _blogRepository.GetCategoriesAsync();
+    var authors = await _authorRepository.GetAuthorsAsync();
+    var categories = await _categoryRepository.GetCategoriesAsync();
 
     model.AuthorList = authors.Select(a => new SelectListItem{
       Text = a.FullName,
@@ -102,10 +123,10 @@ public class PostsController : Controller
   }
 
   [HttpPost]
-  public async Task<ActionResult> Edit(IValidator<PostEditModel> postValidator, PostEditModel model)
+  public async Task<ActionResult> Edit(PostEditModel model)
   {
-    var validator = HttpContext.RequestServices.GetService(typeof(IValidator<PostEditModel>)); 
-    var validationResult = await postValidator.ValidateAsync(model);
+    var postValidator = HttpContext.RequestServices.GetService(typeof(IValidator<PostEditModel>)); 
+    var validationResult = await _postValidator.ValidateAsync(model);
 
     if (!validationResult.IsValid)
     {
@@ -160,5 +181,21 @@ public class PostsController : Controller
     var slugExisted = await _blogRepository.IsPostSlugExistedAsync(id, urlSlug);
 
     return slugExisted ? Json($"Slug '{urlSlug}' đã được sử dụng") : Json(true);
+  }
+
+  [HttpPost]
+  public async Task<ActionResult> PublishChanged(string postId)
+  {
+    await _blogRepository.ChangePostStatusAsync(Convert.ToInt32(postId));
+
+    return RedirectToAction(nameof(Index));
+  }
+
+  [HttpPost]
+  public async Task<ActionResult> DeletePost(string id)
+  {
+    await _blogRepository.DeletePostByIdAsync(Convert.ToInt32(id));
+
+    return RedirectToAction(nameof(Index));
   }
 }

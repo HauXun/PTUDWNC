@@ -4,11 +4,17 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace TatBlog.WebApp.Areas.Admin.Models;
 
-public class PostFilterModel
+public class PostFilterModel : SearchModel
 {
   [DisplayName("Từ khóa")]
   public string Keyword { get; set; }
 
+  [DisplayName("Đã xuất bản")]
+  public bool PublishedOnly { get; set; }
+
+  [DisplayName("Chưa xuất bản")]
+  public bool NotPublished { get; set; }
+  
   [DisplayName("Tác giả")]
   public int? AuthorId { get; set; }
 

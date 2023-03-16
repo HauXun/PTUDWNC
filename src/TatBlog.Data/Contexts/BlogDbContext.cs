@@ -7,12 +7,11 @@ namespace TatBlog.Data.Contexts;
 public class BlogDbContext : DbContext
 {
   public DbSet<Author> Authors { get; set; }
-
   public DbSet<Category> Categories { get; set; }
-
   public DbSet<Post> Posts { get; set; }
-
   public DbSet<Tag> Tags { get; set; }
+  public DbSet<Subscriber> Subscribers { get; set; }
+  public DbSet<Comment> Comments { get; set; }
 
   public BlogDbContext(DbContextOptions<BlogDbContext> options) : base(options)
   {
@@ -22,6 +21,11 @@ public class BlogDbContext : DbContext
   {
 
   }
+
+  // protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+  // {
+  //   optionsBuilder.UseSqlServer(@"Data Source=localhost,1433; Initial Catalog=TatBlog; User ID=SA; Password=Password123; TrustServerCertificate=true; Trusted_Connection=false; MultipleActiveResultSets=true");
+  // }
 
   protected override void OnModelCreating(ModelBuilder modelBuilder)
   {

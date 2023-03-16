@@ -1,7 +1,3 @@
-@{
-  var newsLetterController = new NewsLetterController();
-}
-
 <div class="my-4">
   <partial name="_SearchForm" />
   
@@ -9,7 +5,7 @@
   
   @await Component.InvokeAsync("FeaturedPosts")
   
-  <partial name="_NewsletterForm" model="newsLetterController"/>
+  <partial name="_NewsletterForm" />
   
   @await Component.InvokeAsync("TagCloud")
 

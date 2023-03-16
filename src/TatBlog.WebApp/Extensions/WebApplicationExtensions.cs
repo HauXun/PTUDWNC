@@ -23,8 +23,8 @@ public static class WebApplicationExtension
   // Cấu hình việc sử dụng NLog
   public static WebApplicationBuilder ConfigureNLog(this WebApplicationBuilder builder)
   {
-    builder.Logging.ClearProviders();
-    builder.Host.UseNLog();
+    // builder.Logging.ClearProviders();
+    // builder.Host.UseNLog();
 
     return builder;
   }
@@ -32,20 +32,30 @@ public static class WebApplicationExtension
   // Đăng ký các dịch vụ với DI Container
   public static WebApplicationBuilder ConfigureServices(this WebApplicationBuilder builder)
   {
+    builder.Services.AddOptions();
+
+    builder.Services.Configure<MailSettings>(builder.Configuration.GetSection("MailSettings"));
+
     builder.Services.Configure<RouteOptions>(routeOptions =>
     {
       routeOptions.LowercaseUrls = true;
     });
-
 
     // Đăng ký các dịch vụ với DI Container
     builder.Services.AddDbContext<BlogDbContext>(options =>
     {
       options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
     });
+    builder.Services.AddScoped<ITagRepository, TagRepository>();
+    builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
+    builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+    builder.Services.AddScoped<ICommentRepository, CommentRepository>();
+    builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+    builder.Services.AddScoped<ISubscriberRepository, SubscriberRepository>();
     builder.Services.AddScoped<IBlogRepository, BlogRepository>();
     builder.Services.AddScoped<IDataSeeder, DataSeeder>();
     builder.Services.AddScoped<IMediaManager, LocalFileSystemMediaManager>();
+    builder.Services.AddTransient<SendMailService>();
 
     return builder;
   }
@@ -73,7 +83,7 @@ public static class WebApplicationExtension
     // tới các tập tin nội dung tĩnh như hình ảnh, css, ...
     app.UseStaticFiles();
 
-    // app.UseMiddleware<UserActivityMiddleware>();
+    app.UseMiddleware<UserActivityMiddleware>();
 
     // Thêm middware lựa chọn endpoint phù hợp nhất
     // để xử lý một HTTP request.

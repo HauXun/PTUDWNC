@@ -2,6 +2,7 @@
 
 @{
   var imageUrl = string.IsNullOrWhiteSpace(Model.ImageUrl) ? "/images/red_defqon1_mainstage_2016_4k-2.jpg" : $"/{Model.ImageUrl}";
+  var pagerQuery = (ViewData["PagerQuery"] as PagerQuery) ?? new PagerQuery();
 }
 
 <article class="blog-entry mb-4">
@@ -15,7 +16,7 @@
           <h5 class="card-title">
             <a title="@Model.Title"
                 style="text-decoration: none;"
-                asp-controller="Blog"
+                asp-controller="@pagerQuery.Controller"
                 asp-action="Post"
                 asp-route-year="@Model.PostedDate.Year"
                 asp-route-month="@Model.PostedDate.Month"
@@ -32,7 +33,7 @@
             <span class="text-primary">
               <a title="@Model.Author.FullName"
               style="text-decoration: none;"
-                asp-controller="Blog"
+                asp-controller="@pagerQuery.Controller"
                 asp-action="Author"
                 asp-route-slug="@Model.Author.UrlSlug"
                 >
@@ -45,7 +46,7 @@
             <span class="text-primary">
               <a title="@Model.Category.Name"
                 style="text-decoration: none;"
-                asp-controller="Blog"
+                asp-controller="@pagerQuery.Controller"
                 asp-action="Category"
                 asp-route-slug="@Model.Category.UrlSlug"
                 >
@@ -62,7 +63,7 @@
           <div class="text-end">
             <a class="btn btn-primary" 
                 title="@Model.Title"
-                asp-controller="Blog"
+                asp-controller="@pagerQuery.Controller"
                 asp-action="Post"
                 asp-route-year="@Model.PostedDate.Year"
                 asp-route-month="@Model.PostedDate.Month"

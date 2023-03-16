@@ -1,6 +1,6 @@
 using TatBlog.Core.Constants;
 
-namespace TatBlog.WinApp;
+namespace TatBlog.Core.DTO;
 
 public class PagingParams : IPagingParams
 {
