@@ -25,7 +25,7 @@ public class AuthorValidator : AbstractValidator<AuthorEditModel>
     .WithMessage("Slug dài tối đa '{MaxLength}'");
 
     RuleFor(a => a.UrlSlug)
-    .MustAsync(async (slug, cancellationToken) => !await _authorRepository.CheckAuthorSlugExisted(slug, cancellationToken))
+    .MustAsync(async (slug, cancellationToken) => !await _authorRepository.CheckAuthorSlugExisted(0, slug, cancellationToken))
     .WithMessage("Slug '{PropertyValue}' đã được sử dụng");
 
     RuleFor(a => a.Email)

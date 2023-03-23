@@ -104,9 +104,9 @@ public class AuthorsController : Controller
   }
 
   [HttpPost]
-  public async Task<ActionResult> VerifyAuthorSlug(string urlSlug)
+  public async Task<ActionResult> VerifyAuthorSlug(int id, string urlSlug)
   {
-    var slugExisted = await _authorRepository.CheckAuthorSlugExisted(urlSlug);
+    var slugExisted = await _authorRepository.CheckAuthorSlugExisted(id, urlSlug);
 
     return slugExisted ? Json($"Slug '{urlSlug}' đã được sử dụng") : Json(true);
   }

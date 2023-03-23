@@ -11,7 +11,7 @@ public class AuthorEditModel
   public string FullName { get; set; }
 
   [DisplayName("Slug")]
-  [Remote("VerifyAuthorSlug", "Authors", "Admin", HttpMethod = "POST")]
+  [Remote("VerifyAuthorSlug", "Authors", "Admin", HttpMethod = "POST", AdditionalFields = "Id")]
   public string UrlSlug { get; set; }
 
   [DisplayName("Chọn hình ảnh")]
