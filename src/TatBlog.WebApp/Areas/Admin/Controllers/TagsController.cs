@@ -87,9 +87,9 @@ public class TagsController : Controller
   }
 
   [HttpPost]
-  public async Task<ActionResult> VerifyTagSlug(string urlSlug)
+  public async Task<ActionResult> VerifyTagSlug(int id, string urlSlug)
   {
-    var slugExisted = await _tagRepository.CheckTagSlugExisted(urlSlug);
+    var slugExisted = await _tagRepository.CheckTagSlugExisted(id, urlSlug);
 
     return slugExisted ? Json($"Slug '{urlSlug}' đã được sử dụng") : Json(true);
   }

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using TatBlog.Core.Contracts;
 using TatBlog.Core.DTO;
 using TatBlog.Core.Entities;
@@ -9,153 +10,184 @@ using TatBlog.Services.Media;
 
 public class SubscriberRepository : ISubscriberRepository
 {
-  private readonly BlogDbContext _blogContext;
-  private readonly SendMailService _sendMailService;
+	private readonly BlogDbContext _blogContext;
+	private readonly SendMailService _sendMailService;
+	private readonly IMemoryCache _memoryCache;
 
-  public SubscriberRepository(BlogDbContext dbContext, SendMailService sendMailService)
-  {
-    _blogContext = dbContext;
-    _sendMailService = sendMailService;
-  }
+	public SubscriberRepository(BlogDbContext dbContext, SendMailService sendMailService, IMemoryCache memoryCache)
+	{
+		_blogContext = dbContext;
+		_sendMailService = sendMailService;
+		_memoryCache = memoryCache;
+	}
 
-  public async Task<bool> BlockSubscriberAsync(int id, string reason, string notes, CancellationToken cancellationToken = default)
-  {
-    var subscriber = await GetSubscriberByIdAsync(id);
-    if (subscriber == null)
-    {
-      Console.WriteLine("Không có người đăng ký nào để chặn");
-      return await Task.FromResult(false);
-    }
+	public async Task<Subscriber> GetSubscriberByEmailAsync(string email, CancellationToken cancellationToken = default)
+	{
+		return await _blogContext.Set<Subscriber>()
+								 .Where(s => s.SubscribeEmail.Equals(email))
+								 .FirstOrDefaultAsync(cancellationToken);
+	}
 
-    subscriber.CancelReason = reason;
-    subscriber.AdminNotes = notes;
-    subscriber.ForceLock = true;
+	public async Task<Subscriber> GetCachedSubscriberByEmailAsync(string email, CancellationToken cancellationToken = default)
+	{
+		return await _memoryCache.GetOrCreateAsync(
+			$"subscriber.by-email.{email}",
+			async (entry) =>
+			{
+				entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+				return await GetSubscriberByEmailAsync(email, cancellationToken);
+			});
+	}
 
-    _blogContext.Attach(subscriber).State = EntityState.Modified;
-    var affects = await _blogContext.SaveChangesAsync(cancellationToken);
+	public async Task<Subscriber> GetSubscriberByIdAsync(int id, CancellationToken cancellationToken = default)
+	{
+		return await _blogContext.Set<Subscriber>().FindAsync(id, cancellationToken);
+	}
 
-    return affects > 0;
-  }
+	public async Task<Subscriber> GetCachedSubscriberByIdAsync(int id, CancellationToken cancellationToken = default)
+	{
+		return await _memoryCache.GetOrCreateAsync(
+			$"subscriber.by-id.{id}",
+			async (entry) =>
+			{
+				entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+				return await GetSubscriberByIdAsync(id, cancellationToken);
+			});
+	}
 
-  public async Task<bool> DeleteSubscriberAsync(int id, CancellationToken cancellationToken = default)
-  {
-    var subscriber = await _blogContext.Set<Subscriber>().FindAsync(id);
+	public async Task<IPagedList<Subscriber>> GetSubscriberByQueryAsync(SubscriberQuery query, int pageNumber = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+	{
+		return await FilterSubscribers(query).ToPagedListAsync(
+											  pageNumber,
+											  pageSize,
+											  nameof(Subscriber.SubDated),
+											  "DESC",
+											  cancellationToken);
+	}
 
-    if (subscriber is null) 
-      return await Task.FromResult(false);
+	public async Task<IPagedList<Subscriber>> GetSubscriberByQueryAsync(SubscriberQuery query, IPagingParams pagingParams, CancellationToken cancellationToken = default)
+	{
+		return await FilterSubscribers(query).ToPagedListAsync(pagingParams, cancellationToken);
+	}
 
-    _blogContext.Set<Subscriber>().Remove(subscriber);
-    var affects = await _blogContext.SaveChangesAsync(cancellationToken);
+	public async Task<IPagedList<T>> GetSubscriberByQueryAsync<T>(SubscriberQuery query, IPagingParams pagingParams, Func<IQueryable<Subscriber>, IQueryable<T>> mapper, CancellationToken cancellationToken = default)
+	{
+		IQueryable<T> result = mapper(FilterSubscribers(query));
 
-    return affects > 0;
-  }
+		return await result.ToPagedListAsync(pagingParams, cancellationToken);
+	}
 
-  public async Task<Subscriber> GetSubscriberByEmailAsync(string email, CancellationToken cancellationToken = default)
-  {
-    return await _blogContext.Set<Subscriber>()
-                             .Where(s => s.SubscribeEmail.Equals(email))
-                             .FirstOrDefaultAsync(cancellationToken);
-  }
+	public async Task<bool> SubscribeAsync(string email, CancellationToken cancellationToken = default)
+	{
+		var subscriberExisted = await GetSubscriberByEmailAsync(email);
 
-  public async Task<Subscriber> GetSubscriberByIdAsync(int id, CancellationToken cancellationToken = default)
-  {
-    return await _blogContext.Set<Subscriber>().FindAsync(id, cancellationToken);
-  }
+		if (subscriberExisted != null)
+		{
+			if (subscriberExisted.UnSubDated == null)
+				return await Task.FromResult(false);
 
-  public async Task<IPagedList<Subscriber>> SearchSubscribersAsync(IPagingParams pagingParams, string keyword, bool unsubscribed, bool involuntary, CancellationToken cancellationToken = default)
-  {
-    var subscriberQuery = _blogContext.Set<Subscriber>();
+			subscriberExisted.UnSubDated = null;
+			_blogContext.Attach(subscriberExisted).State = EntityState.Modified;
+			await _blogContext.SaveChangesAsync(cancellationToken);
+		}
 
-    return await subscriberQuery.ToPagedListAsync(pagingParams, cancellationToken);
-  }
+		MailContent mailContent = new MailContent
+		{
+			To = email,
+			Subject = "Đăng ký theo dõi blog",
+			Body = "<h1>Đăng ký thành công</h1><i>Cảm ơn bạn đã đăng ký theo dõi blog</i>"
+		};
 
-  public async Task<bool> SubscribeAsync(string email, CancellationToken cancellationToken = default)
-  {
-    var subscriberExisted = await GetSubscriberByEmailAsync(email);
-    
-    if (subscriberExisted != null)
-    {
-      if (subscriberExisted.UnSubDated == null)
-        return await Task.FromResult(false);
+		Subscriber subscriber = new Subscriber
+		{
+			SubscribeEmail = email,
+			SubDated = DateTime.Now
+		};
 
-      subscriberExisted.UnSubDated = null;
-      _blogContext.Attach(subscriberExisted).State = EntityState.Modified;
-      await _blogContext.SaveChangesAsync(cancellationToken);
-    }
+		_blogContext.Add(subscriber);
 
-    MailContent mailContent = new MailContent
-    {
-      To = email,
-      Subject = "Đăng ký theo dõi blog",
-      Body = "<h1>Đăng ký thành công</h1><i>Cảm ơn bạn đã đăng ký theo dõi blog</i>"
-    };
+		await _sendMailService.SendEmailAsync(mailContent);
+		var affects = await _blogContext.SaveChangesAsync(cancellationToken);
 
-    Subscriber subscriber = new Subscriber
-    {
-      SubscribeEmail = email,
-      SubDated = DateTime.Now
-    };
+		return affects > 0;
+	}
 
-    _blogContext.Add(subscriber);
+	public async Task<bool> DeleteSubscriberAsync(int id, CancellationToken cancellationToken = default)
+	{
+		var subscriber = await _blogContext.Set<Subscriber>().FindAsync(id);
 
-    await _sendMailService.SendEmailAsync(mailContent);
-    var affects = await _blogContext.SaveChangesAsync(cancellationToken);
+		if (subscriber is null)
+			return await Task.FromResult(false);
 
-    return affects > 0;
-  }
+		_blogContext.Set<Subscriber>().Remove(subscriber);
+		var affects = await _blogContext.SaveChangesAsync(cancellationToken);
 
-  public async Task UnsubscribeAsync(string email, string reason, bool voluntary, CancellationToken cancellationToken = default)
-  {
-    var subscriber = await GetSubscriberByEmailAsync(email);
-    if (subscriber == null)
-    {
-      Console.WriteLine("Không có người đăng ký này để hủy đăng ký");
-      return;
-    }
+		return affects > 0;
+	}
 
-    subscriber.CancelReason = reason;
-    subscriber.UnsubscribeVoluntary = true;
-    subscriber.UnSubDated = DateTime.Now;
+	public async Task<bool> BlockSubscriberAsync(int id, string reason, string notes, CancellationToken cancellationToken = default)
+	{
+		var subscriber = await GetSubscriberByIdAsync(id);
+		if (subscriber == null)
+		{
+			Console.WriteLine("Không có người đăng ký nào để chặn");
+			return await Task.FromResult(false);
+		}
 
-    _blogContext.Attach(subscriber).State = EntityState.Modified;
-    await _blogContext.SaveChangesAsync(cancellationToken);
-  }
+		subscriber.CancelReason = reason;
+		subscriber.AdminNotes = notes;
+		subscriber.ForceLock = true;
 
-  public async Task<IPagedList<Subscriber>> GetSubscriberByQueryAsync(SubscriberQuery query, int pageNumber = 1, int pageSize = 10, CancellationToken cancellationToken = default)
-  {
-    return await FilterSubscribers(query).ToPagedListAsync(
-                                          pageNumber,
-                                          pageSize,
-                                          nameof(Subscriber.SubDated),
-                                          "DESC",
-                                          cancellationToken);
-  }
+		_blogContext.Attach(subscriber).State = EntityState.Modified;
+		var affects = await _blogContext.SaveChangesAsync(cancellationToken);
 
-  private IQueryable<Subscriber> FilterSubscribers(SubscriberQuery query)
-  {
-    IQueryable<Subscriber> categoryQuery = _blogContext.Set<Subscriber>();
+		return affects > 0;
+	}
 
-    if (!string.IsNullOrWhiteSpace(query.Email))
-    {
-      categoryQuery = categoryQuery.Where(x => x.SubscribeEmail.Equals(query.Email));
-    }
+	public async Task<bool> UnsubscribeAsync(string email, string reason, bool voluntary, CancellationToken cancellationToken = default)
+	{
+		var subscriber = await GetSubscriberByEmailAsync(email);
+		if (subscriber == null)
+		{
+			Console.WriteLine("Không có người đăng ký này để hủy đăng ký");
+			return await Task.FromResult(false);
+		}
 
-    if (query.ForceLock)
-    {
-      categoryQuery = categoryQuery.Where(x => x.ForceLock);
-    }
+		subscriber.CancelReason = reason;
+		subscriber.UnsubscribeVoluntary = true;
+		subscriber.UnSubDated = DateTime.Now;
 
-    if (query.UnsubscribeVoluntary)
-    {
-      categoryQuery = categoryQuery.Where(x => x.UnsubscribeVoluntary);
-    }
+		_blogContext.Attach(subscriber).State = EntityState.Modified;
 
-    if (!string.IsNullOrWhiteSpace(query.Keyword))
-    {
-      categoryQuery = categoryQuery.Where(x => x.CancelReason.Contains(query.Keyword) ||
-                   x.AdminNotes.Contains(query.Keyword));
-    }
+		var result = await _blogContext.SaveChangesAsync(cancellationToken);
+		return result > 0;
+	}
 
-    return categoryQuery;
-  }
+	private IQueryable<Subscriber> FilterSubscribers(SubscriberQuery query)
+	{
+		IQueryable<Subscriber> categoryQuery = _blogContext.Set<Subscriber>();
+
+		if (!string.IsNullOrWhiteSpace(query.Email))
+		{
+			categoryQuery = categoryQuery.Where(x => x.SubscribeEmail.Equals(query.Email));
+		}
+
+		if (query.ForceLock)
+		{
+			categoryQuery = categoryQuery.Where(x => x.ForceLock);
+		}
+
+		if (query.UnsubscribeVoluntary)
+		{
+			categoryQuery = categoryQuery.Where(x => x.UnsubscribeVoluntary);
+		}
+
+		if (!string.IsNullOrWhiteSpace(query.Keyword))
+		{
+			categoryQuery = categoryQuery.Where(x => x.CancelReason.Contains(query.Keyword) ||
+						 x.AdminNotes.Contains(query.Keyword));
+		}
+
+		return categoryQuery;
+	}
 }

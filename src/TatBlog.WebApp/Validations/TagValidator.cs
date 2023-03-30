@@ -25,7 +25,7 @@ public class TagValidator : AbstractValidator<TagEditModel>
     .WithMessage("Slug dài tối đa '{MaxLength}'");
 
     RuleFor(a => a.UrlSlug)
-    .MustAsync(async (slug, cancellationToken) => !await _tagRepository.CheckTagSlugExisted(slug, cancellationToken))
+    .MustAsync(async (slug, cancellationToken) => !await _tagRepository.CheckTagSlugExisted(0, slug, cancellationToken))
     .WithMessage("Slug '{PropertyValue}' đã được sử dụng");
 
     RuleFor(a => a.Description)

@@ -11,7 +11,7 @@ public class TagEditModel
   public string Name { get; set; }
 
   [DisplayName("Slug")]
-  [Remote("VerifyTagSlug", "Tags", "Admin", HttpMethod = "POST")]
+  [Remote("VerifyTagSlug", "Tags", "Admin", HttpMethod = "POST", AdditionalFields = "Id")]
   public string UrlSlug { get; set; }
 
   [DisplayName("Nội dung")]

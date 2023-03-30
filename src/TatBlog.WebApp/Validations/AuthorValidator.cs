@@ -30,7 +30,9 @@ public class AuthorValidator : AbstractValidator<AuthorEditModel>
 
     RuleFor(a => a.Email)
     .NotEmpty()
-    .WithMessage("Email của tác giả không được để trống");
+    .WithMessage("Email của tác giả không được để trống")
+	.EmailAddress()
+    .WithMessage("Phải là một email");
 
     When(a => a.Id <= 0, () => {
       RuleFor(a => a.ImageFile)

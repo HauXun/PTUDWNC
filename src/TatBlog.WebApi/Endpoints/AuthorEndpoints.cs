@@ -59,14 +59,15 @@ public static class AuthorEndpoints
 
 		routeGroupBuilder.MapGet("/best/{limit:int}", GetBestAuthors)
 						 .WithName("GetBestAuthors")
-						 .Produces<PagedList<Author>>();
+						 .Produces<IList<Author>>();
 
 		return app;
 	}
 
-	private static async Task<IResult> GetAuthors([AsParameters] AuthorFilterModel model, IAuthorRepository authorRepository)
+	private static async Task<IResult> GetAuthors([AsParameters] AuthorFilterModel model, IAuthorRepository authorRepository, IMapper mapper)
 	{
-		var authorList = await authorRepository.GetPagedAuthorsAsync(model, model.Name);
+		var authorQuery = mapper.Map<AuthorQuery>(model);
+		var authorList = await authorRepository.GetAuthorByQueryAsync(authorQuery, model, author => author.ProjectToType<AuthorItem>());
 
 		var paginationResult = new PaginationResult<AuthorItem>(authorList);
 
@@ -110,7 +111,7 @@ public static class AuthorEndpoints
 		return Results.Ok(paginationResult);
 	}
 
-	private static async Task<IResult> AddAuthor(AuthorEditModel model, IValidator<AuthorEditModel> validator, IAuthorRepository authorRepository, IMapper mapper)
+	private static async Task<IResult> AddAuthor(AuthorEditModel model, IAuthorRepository authorRepository, IMapper mapper)
 	{
 		if (await authorRepository.CheckAuthorSlugExisted(0, model.UrlSlug))
 		{
@@ -123,7 +124,7 @@ public static class AuthorEndpoints
 		return Results.CreatedAtRoute("GetAuthorById", new { author.Id }, mapper.Map<AuthorItem>(author));
 	}
 
-	private static async Task<IResult> UpdateAuthor(int id, AuthorEditModel model, IValidator<AuthorEditModel> validator, IAuthorRepository authorRepository, IMapper mapper)
+	private static async Task<IResult> UpdateAuthor(int id, AuthorEditModel model, IAuthorRepository authorRepository, IMapper mapper)
 	{
 		if (await authorRepository.CheckAuthorSlugExisted(id, model.UrlSlug))
 		{
@@ -150,6 +151,7 @@ public static class AuthorEndpoints
 			return Results.BadRequest("Không lưu được tập tin");
 		}
 
+		await mediaManager.DeleteFileAsync(imageUrl);
 		await authorRepository.SetImageUrlAsync(id, imageUrl);
 
 		return Results.Ok(imageUrl);
@@ -159,8 +161,6 @@ public static class AuthorEndpoints
 	{
 		var authors = await authorRepository.Find_N_MostPostByAuthorAsync(limit);
 
-		var pagedResult = new PagedList<Author>(authors, 1, limit, authors.Count);
-
-		return Results.Ok(pagedResult);
+		return Results.Ok(authors);
 	}
 }

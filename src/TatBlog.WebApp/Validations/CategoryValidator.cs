@@ -29,7 +29,7 @@ public class CategoryValidator : AbstractValidator<CategoryEditModel>
     .WithMessage("Slug dài tối đa '{MaxLength}'");
 
     RuleFor(p => p.UrlSlug)
-    .MustAsync(async (slug, cancellationToken) => !await _categoryRepository.CheckCategorySlugExisted(slug, cancellationToken))
+    .MustAsync(async (slug, cancellationToken) => !await _categoryRepository.CheckCategorySlugExisted(0, slug, cancellationToken))
     .WithMessage("Slug '{PropertyValue}' đã được sử dụng");
   }
 }

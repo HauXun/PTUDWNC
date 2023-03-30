@@ -1,41 +1,25 @@
-@{
-  var last12months = ViewData["last12months"] as List<DateItem>;
-  var postDate = ViewData["postDate"] as List<DateItem>;
-  bool breakout = false;
-}
+@model IList<DateItem>
 
 <div class="mb-4">
-  <h3 class="text-success mb-2">
-    Danh sách 12 tháng gần nhất và số lượng bài viết tương ứng
-  </h3>
-  
-  <ul class="list-group">
-    @foreach (var date in last12months)
-    {
-      breakout = false;
-      <li class="list-group-item text-primary">
-        <a title="date"
-            style="text-decoration: none;"
-            asp-controller="Blog"
-            asp-action="Archives"
-            asp-route-year="@date.Year"
-            asp-route-month="@date.Month"
-            >
-          @CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(date.Month) - @date.Year 
-          @foreach (var date2 in postDate)
-          {
-            if (date2.Month == date.Month)
-            {
-              <span>(@date2.PostCount)</span>
-              breakout = true;
-            }
-          }
-          @if (!breakout)
-          {
-            <span>(0)</span>
-          }
-        </a>
-      </li>
-    }
-  </ul>
+    <h3 class="text-success mb-2">
+        Danh sách 12 tháng gần nhất và số lượng bài viết tương ứng
+    </h3>
+
+    <ul class="list-group">
+        @foreach (var date in Model)
+        {
+            <li class="list-group-item text-primary">
+                <a title="date"
+                   style="text-decoration: none;"
+                   asp-controller="Blog"
+                   asp-action="Archives"
+                   asp-area=""
+                   asp-route-year="@date.Year"
+                   asp-route-month="@date.Month">
+                    @date.MonthName - @date.Year
+                    <span>(@date.PostCount)</span>
+                </a>
+            </li>
+        }
+    </ul>
 </div>

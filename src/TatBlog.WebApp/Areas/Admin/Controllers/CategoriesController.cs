@@ -87,9 +87,9 @@ public class CategoriesController : Controller
   }
 
   [HttpPost]
-  public async Task<ActionResult> VerifyCategorySlug(string urlSlug)
+  public async Task<ActionResult> VerifyCategorySlug(int id, string urlSlug)
   {
-    var slugExisted = await _categoryRepository.CheckCategorySlugExisted(urlSlug);
+    var slugExisted = await _categoryRepository.CheckCategorySlugExisted(id, urlSlug);
 
     return slugExisted ? Json($"Slug '{urlSlug}' đã được sử dụng") : Json(true);
   }

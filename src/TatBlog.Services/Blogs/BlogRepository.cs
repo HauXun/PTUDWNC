@@ -1,9 +1,14 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
 using TatBlog.Core.Contracts;
 using TatBlog.Core.DTO;
 using TatBlog.Core.Entities;
 using TatBlog.Data.Contexts;
 using TatBlog.Services.Extensions;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace TatBlog.Services.Blogs;
 
@@ -11,11 +16,13 @@ public class BlogRepository : IBlogRepository
 {
 	private readonly BlogDbContext _blogContext;
 	private readonly ITagRepository _tagRepository;
+	private readonly IMemoryCache _memoryCache;
 
-	public BlogRepository(BlogDbContext dbContext, ITagRepository tagRepository)
+	public BlogRepository(BlogDbContext dbContext, ITagRepository tagRepository, IMemoryCache memoryCache)
 	{
 		_blogContext = dbContext;
 		_tagRepository = tagRepository;
+		_memoryCache = memoryCache;
 	}
 
 	public async Task<Post> GetPostAsync(int year, int month, int day, string slug, CancellationToken cancellationToken = default)
@@ -48,52 +55,15 @@ public class BlogRepository : IBlogRepository
 		return await postsQuery.FirstOrDefaultAsync(cancellationToken);
 	}
 
-	public async Task<IList<Post>> GetPopularArticlesAsync(int numPosts, CancellationToken cancellationToken = default)
+	public async Task<Post> GetCachedPostAsync(int year, int month, int day, string slug, CancellationToken cancellationToken = default)
 	{
-		return await _blogContext.Set<Post>()
-								 .Include(x => x.Author)
-								 .Include(x => x.Category)
-								 .OrderByDescending(p => p.ViewCount)
-								 .Take(numPosts)
-								 .ToListAsync(cancellationToken);
-	}
-
-	public async Task<bool> IsPostSlugExistedAsync(int postId, string slug, CancellationToken cancellationToken = default)
-	{
-		return await _blogContext.Set<Post>()
-								 .AnyAsync(x => x.Id != postId && x.UrlSlug == slug, cancellationToken);
-	}
-
-	public async Task IncreaseViewCountAsync(int postId, CancellationToken cancellationToken = default)
-	{
-		await _blogContext.Set<Post>()
-						  .Where(x => x.Id == postId)
-						  .ExecuteUpdateAsync(p => p.SetProperty(x => x.ViewCount, x => x.ViewCount + 1), cancellationToken);
-	}
-
-	public async Task<IList<PostInMonthItem>> CountPostInMonthAsync(int monthCount, CancellationToken cancellationToken = default)
-	{
-		IQueryable<Post> postsQuery = _blogContext.Set<Post>()
-													  .OrderByDescending(p => p.PostedDate);
-
-		var topDate = await postsQuery.Select(p => p.PostedDate).FirstOrDefaultAsync();
-		var subDate = topDate.AddMonths(-monthCount);
-		postsQuery = postsQuery.Where(x => x.PostedDate >= subDate);
-
-		var result = from p in postsQuery
-					 group p by new
-					 {
-						 p.PostedDate.Year,
-						 p.PostedDate.Month
-					 } into postCount
-					 select new PostInMonthItem
-					 {
-						 Count = postCount.Count(),
-						 Year = postCount.Key.Year.ToString(),
-						 Month = postCount.Key.Month.ToString()
-					 };
-
-		return await result.ToListAsync(cancellationToken);
+		return await _memoryCache.GetOrCreateAsync(
+			$"post.{year}-{month}-{day}-{slug}",
+			async (entry) =>
+			{
+				entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+				return await GetCachedPostAsync(year, month, day, slug, cancellationToken);
+			});
 	}
 
 	public async Task<Post> GetPostByIdAsync(int id, bool published = false, CancellationToken cancellationToken = default)
@@ -112,7 +82,77 @@ public class BlogRepository : IBlogRepository
 							  .FirstOrDefaultAsync(cancellationToken);
 	}
 
-	public async Task AddOrUpdatePostAsync(Post post, IEnumerable<string> tags, CancellationToken cancellationToken = default)
+	public async Task<Post> GetCachedPostByIdAsync(int id, bool published = false, CancellationToken cancellationToken = default)
+	{
+		return await _memoryCache.GetOrCreateAsync(
+			$"post.by-id.{id}-{published}",
+			async (entry) =>
+			{
+				entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30);
+				return await GetPostByIdAsync(id, published, cancellationToken);
+			});
+	}
+
+	public async Task<IList<Post>> GetPopularArticlesAsync(int limit, CancellationToken cancellationToken = default)
+	{
+		return await _blogContext.Set<Post>()
+								 .Include(x => x.Author)
+								 .Include(x => x.Category)
+								 .OrderByDescending(p => p.ViewCount)
+								 .Take(limit)
+								 .ToListAsync(cancellationToken);
+	}
+
+	public async Task<IList<Post>> GetRandomPostAsync(int limit, CancellationToken cancellationToken = default)
+	{
+		return await _blogContext.Set<Post>().OrderBy(p => Guid.NewGuid()).Take(limit).ToListAsync(cancellationToken);
+	}
+
+	public async Task<IList<DateItem>> GetArchivesPostAsync(int limit, CancellationToken cancellationToken = default)
+	{
+		var lastestMonths = await GetLatestMonthList(limit);
+
+		return await Task.FromResult(_blogContext.Set<Post>().AsEnumerable()
+															.GroupBy(p => new
+															{
+																p.PostedDate.Month,
+																p.PostedDate.Year
+															})
+															.Join(lastestMonths, d => d.Key.Month, m => m.Month,
+															(postDate, monthGet) => new DateItem
+															{
+																Month = postDate.Key.Month,
+																MonthName = CultureInfo.CurrentCulture.DateTimeFormat.GetMonthName(postDate.Key.Month),
+																Year = postDate.Key.Year,
+																PostCount = postDate.Count()
+															}).ToList());
+	}
+
+	public async Task<IPagedList<Post>> GetPostByQueryAsync(PostQuery query, int pageNumber = 1, int pageSize = 10, CancellationToken cancellationToken = default)
+	{
+		return await FilterPosts(query).ToPagedListAsync(
+								pageNumber,
+								pageSize,
+								nameof(Post.PostedDate),
+								"DESC",
+								cancellationToken);
+	}
+
+	public async Task<IPagedList<Post>> GetPostByQueryAsync(PostQuery query, IPagingParams pagingParams, CancellationToken cancellationToken = default)
+	{
+		return await FilterPosts(query).ToPagedListAsync(
+										pagingParams,
+										cancellationToken);
+	}
+
+	public async Task<IPagedList<T>> GetPostByQueryAsync<T>(PostQuery query, IPagingParams pagingParams, Func<IQueryable<Post>, IQueryable<T>> mapper, CancellationToken cancellationToken = default)
+	{
+		IQueryable<T> result = mapper(FilterPosts(query));
+
+		return await result.ToPagedListAsync(pagingParams, cancellationToken);
+	}
+
+	public async Task<bool> AddOrUpdatePostAsync(Post post, IEnumerable<string> tags, CancellationToken cancellationToken = default)
 	{
 		if (post.Id > 0)
 		{
@@ -153,7 +193,33 @@ public class BlogRepository : IBlogRepository
 		else
 			_blogContext.Add(post);
 
-		await _blogContext.SaveChangesAsync(cancellationToken);
+		var result = await _blogContext.SaveChangesAsync(cancellationToken);
+		return result > 0;
+	}
+
+	public async Task<bool> DeletePostByIdAsync(int? id, CancellationToken cancellationToken = default)
+	{
+		var post = await _blogContext.Set<Post>().FindAsync(id);
+
+		if (post is null) return false;
+
+		_blogContext.Set<Post>().Remove(post);
+		var rowsCount = await _blogContext.SaveChangesAsync(cancellationToken);
+
+		return rowsCount > 0;
+	}
+
+	public async Task<bool> IsPostSlugExistedAsync(int postId, string slug, CancellationToken cancellationToken = default)
+	{
+		return await _blogContext.Set<Post>()
+								 .AnyAsync(x => x.Id != postId && x.UrlSlug == slug, cancellationToken);
+	}
+
+	public async Task IncreaseViewCountAsync(int postId, CancellationToken cancellationToken = default)
+	{
+		await _blogContext.Set<Post>()
+						  .Where(x => x.Id == postId)
+						  .ExecuteUpdateAsync(p => p.SetProperty(x => x.ViewCount, x => x.ViewCount + 1), cancellationToken);
 	}
 
 	public async Task ChangePostStatusAsync(int id, CancellationToken cancellationToken = default)
@@ -166,33 +232,29 @@ public class BlogRepository : IBlogRepository
 		await _blogContext.SaveChangesAsync();
 	}
 
-	public async Task<IList<Post>> GetRandomPostAsync(int n, CancellationToken cancellationToken = default)
+	public async Task<IList<PostInMonthItem>> CountPostInMonthAsync(int monthCount, CancellationToken cancellationToken = default)
 	{
-		return await _blogContext.Set<Post>().OrderBy(p => Guid.NewGuid()).Take(n).ToListAsync(cancellationToken);
-	}
+		IQueryable<Post> postsQuery = _blogContext.Set<Post>()
+													  .OrderByDescending(p => p.PostedDate);
 
-	public async Task<IPagedList<Post>> GetPostByQueryAsync(PostQuery query, int pageNumber = 1, int pageSize = 10, CancellationToken cancellationToken = default)
-	{
-		return await FilterPosts(query).ToPagedListAsync(
-								pageNumber,
-								pageSize,
-								nameof(Post.PostedDate),
-								"DESC",
-								cancellationToken);
-	}
+		var topDate = await postsQuery.Select(p => p.PostedDate).FirstOrDefaultAsync();
+		var subDate = topDate.AddMonths(-monthCount);
+		postsQuery = postsQuery.Where(x => x.PostedDate >= subDate);
 
-	public async Task<IPagedList<Post>> GetPostByQueryAsync(PostQuery query, IPagingParams pagingParams, CancellationToken cancellationToken = default)
-	{
-		return await FilterPosts(query).ToPagedListAsync(
-										pagingParams,
-										cancellationToken);
-	}
+		var result = from p in postsQuery
+					 group p by new
+					 {
+						 p.PostedDate.Year,
+						 p.PostedDate.Month
+					 } into postCount
+					 select new PostInMonthItem
+					 {
+						 Count = postCount.Count(),
+						 Year = postCount.Key.Year.ToString(),
+						 Month = postCount.Key.Month.ToString()
+					 };
 
-	public async Task<IPagedList<T>> GetPostByQueryAsync<T>(PostQuery query, IPagingParams pagingParams, Func<IQueryable<Post>, IQueryable<T>> mapper, CancellationToken cancellationToken = default)
-	{
-		IQueryable<T> result = mapper(FilterPosts(query));
-
-		return await result.ToPagedListAsync(pagingParams, cancellationToken);
+		return await result.ToListAsync(cancellationToken);
 	}
 
 	private IQueryable<Post> FilterPosts(PostQuery query)
@@ -247,6 +309,7 @@ public class BlogRepository : IBlogRepository
 						 x.ShortDescription.Contains(query.Keyword) ||
 						 x.Description.Contains(query.Keyword) ||
 						 x.Category.Name.Contains(query.Keyword) ||
+						 x.Author.FullName.Contains(query.Keyword) ||
 						 x.Tags.Any(t => t.Name.Contains(query.Keyword)));
 		}
 
@@ -274,15 +337,13 @@ public class BlogRepository : IBlogRepository
 		return postsQuery;
 	}
 
-	public async Task<bool> DeletePostByIdAsync(int? id, CancellationToken cancellationToken = default)
+	public async Task<IList<DateItem>> GetLatestMonthList(int limit)
 	{
-		var post = await _blogContext.Set<Post>().FindAsync(id);
-
-		if (post is null) return false;
-
-		_blogContext.Set<Post>().Remove(post);
-		var rowsCount = await _blogContext.SaveChangesAsync(cancellationToken);
-
-		return rowsCount > 0;
+		return await Task.FromResult((from r in Enumerable.Range(1, 12) select DateTime.Now.AddMonths(limit - r))
+							.Select(x => new DateItem
+							{
+								Month = x.Month,
+								Year = x.Year
+							}).ToList());
 	}
 }
