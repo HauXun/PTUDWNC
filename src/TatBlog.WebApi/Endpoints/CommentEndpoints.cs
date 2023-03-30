@@ -2,6 +2,7 @@
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 using TatBlog.Core.Collections;
 using TatBlog.Core.DTO;
 using TatBlog.Core.Entities;
@@ -21,29 +22,26 @@ public static class CommentEndpoints
 		// Nested Map with defined specific route
 		routeGroupBuilder.MapGet("/", GetComments)
 						 .WithName("GetComments")
-						 .Produces<PaginationResult<Comment>>();
+						 .Produces<ApiResponse<PaginationResult<Comment>>>();
 
 		routeGroupBuilder.MapGet("/{id:int}", GetCommentByPostId)
 						 .WithName("GetCommentByPostId")
-						 .Produces<PaginationResult<Comment>>();
+						 .Produces<ApiResponse<PaginationResult<Comment>>>();
 
 		routeGroupBuilder.MapPost("/", AddComment)
 						 .WithName("AddNewComment")
 						 .AddEndpointFilter<ValidatorFilter<CommentEditModel>>()
-						 .Produces(201)
-						 .Produces(400)
-						 .Produces(409);
+						 .Produces(401)
+						 .Produces<ApiResponse<Comment>>();
 
 		routeGroupBuilder.MapDelete("/{id:int}", DeleteComment)
 						 .WithName("DeleteComment")
-						 .Produces(204)
-						 .Produces(404);
+						 .Produces(401)
+						 .Produces<ApiResponse<string>>();
 
 		routeGroupBuilder.MapPost("/toggle/{id:int}", ChangeCommentStatus)
 						 .WithName("ChangeCommentStatus")
-						 .Accepts<IFormFile>("multipart/formdata")
-						 .Produces<string>()
-						 .Produces(400);
+						 .Produces(401);
 
 		return app;
 	}
@@ -55,8 +53,8 @@ public static class CommentEndpoints
 
 		var paginationResult = new PaginationResult<Comment>(commentList);
 
-		return Results.Ok(paginationResult);
-	}
+        return Results.Ok(ApiResponse.Success(paginationResult));
+    }
 
 	private static async Task<IResult> GetCommentByPostId(int id, ICommentRepository commentRepository)
 	{
@@ -64,26 +62,26 @@ public static class CommentEndpoints
 
 		var paginationResult = new PaginationResult<Comment>(commentList);
 
-		return Results.Ok(paginationResult);
-	}
+        return Results.Ok(ApiResponse.Success(paginationResult));
+    }
 
 	private static async Task<IResult> AddComment(CommentEditModel model, ICommentRepository commentRepository, IMapper mapper)
 	{
 		var comment = mapper.Map<Comment>(model);
 		await commentRepository.AddCommentAsync(comment);
 
-		return Results.CreatedAtRoute("GetCommentById", new { comment.Id }, mapper.Map<Comment>(comment));
-	}
+        return Results.Ok(ApiResponse.Success(mapper.Map<Comment>(comment), HttpStatusCode.Created));
+    }
 
 	private static async Task<IResult> DeleteComment(int id, ICommentRepository commentRepository)
-	{
-		return await commentRepository.DeleteCommentByIdAsync(id) ? Results.NoContent() : Results.NotFound($"Could not find comment with id = {id}");
-	}
+    {
+        return await commentRepository.DeleteCommentByIdAsync(id) ? Results.Ok(ApiResponse.Success("Comment is deleted", HttpStatusCode.NoContent)) : Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, $"Could not find comment with id = {id}"));
+    }
 
 	private static async Task<IResult> ChangeCommentStatus(int id, ICommentRepository commentRepository)
 	{
 		await commentRepository.ChangeCommentStatusAsync(id);
 
-		return Results.NoContent();
+		return Results.Ok();
 	}
 }

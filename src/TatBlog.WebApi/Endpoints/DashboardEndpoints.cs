@@ -1,4 +1,6 @@
-﻿using TatBlog.Services.Blogs;
+﻿using TatBlog.Core.Collections;
+using TatBlog.Services.Blogs;
+using TatBlog.WebApi.Models;
 
 namespace TatBlog.WebApi.Endpoints;
 
@@ -11,31 +13,31 @@ public static class DashboardEndpoints
 		// Nested Map with defined specific route
 		routeGroupBuilder.MapGet("/total/posts", GetTotalOfPosts)
 						 .WithName("GetTotalOfPosts")
-						 .Produces<int>();
+						 .Produces<ApiResponse<int>>();
 
 		routeGroupBuilder.MapGet("/total/posts/unpublished", GetTotalOfUnpublishedPosts)
 						 .WithName("GetTotalOfUnpublishedPosts")
-						 .Produces<int>();
+                         .Produces<ApiResponse<int>>();
 
 		routeGroupBuilder.MapGet("/total/categories", GetTotalOfCategories)
 						 .WithName("GetTotalOfCategories")
-						 .Produces<int>();
+                         .Produces<ApiResponse<int>>();
 
 		routeGroupBuilder.MapGet("/total/authors", GetTotalOfAuthors)
 						 .WithName("GetTotalOfAuthors")
-						 .Produces<int>();
+                         .Produces<ApiResponse<int>>();
 
 		routeGroupBuilder.MapGet("/total/comments/waiting", GetTotalOfWaitingComment)
 						 .WithName("GetTotalOfWaitingComment")
-						 .Produces<int>();
+                         .Produces<ApiResponse<int>>();
 
 		routeGroupBuilder.MapGet("/total/subscribers", GetTotalOfSubscriber)
 						 .WithName("GetTotalOfSubscriber")
-						 .Produces<int>();
+                         .Produces<ApiResponse<int>>();
 
 		routeGroupBuilder.MapGet("/total/subscribers/newest", GetTotalOfNewestSubscriberInDay)
 						 .WithName("GetTotalOfNewestSubscriberInDay")
-						 .Produces<int>();
+                         .Produces<ApiResponse<int>>();
 
 		return app;
 	}
@@ -44,48 +46,48 @@ public static class DashboardEndpoints
 	{
 		var totalPost = await dashboardRepository.GetTotalOfPostsAsync();
 
-		return Results.Ok(totalPost);
-	}
+        return Results.Ok(ApiResponse.Success(totalPost));
+    }
 
 	private static async Task<IResult> GetTotalOfUnpublishedPosts(IDashboardRepository dashboardRepository)
 	{
 		var totalPost = await dashboardRepository.GetTotalOfUnpublishedPostsAsync();
 
-		return Results.Ok(totalPost);
-	}
+        return Results.Ok(ApiResponse.Success(totalPost));
+    }
 
 	private static async Task<IResult> GetTotalOfCategories(IDashboardRepository dashboardRepository)
 	{
 		var totalCategory = await dashboardRepository.GetTotalOfCategoriesAsync();
 
-		return Results.Ok(totalCategory);
-	}
+        return Results.Ok(ApiResponse.Success(totalCategory));
+    }
 
 	private static async Task<IResult> GetTotalOfAuthors(IDashboardRepository dashboardRepository)
 	{
 		var totalAuthor = await dashboardRepository.GetTotalOfAuthorsAsync();
 
-		return Results.Ok(totalAuthor);
-	}
+        return Results.Ok(ApiResponse.Success(totalAuthor));
+    }
 
 	private static async Task<IResult> GetTotalOfWaitingComment(IDashboardRepository dashboardRepository)
 	{
 		var total = await dashboardRepository.GetTotalOfWaitingCommentAsync();
 
-		return Results.Ok(total);
-	}
+        return Results.Ok(ApiResponse.Success(total));
+    }
 
 	private static async Task<IResult> GetTotalOfSubscriber(IDashboardRepository dashboardRepository)
 	{
 		var totalSubscriber = await dashboardRepository.GetTotalOfSubscriberAsync();
 
-		return Results.Ok(totalSubscriber);
-	}
+        return Results.Ok(ApiResponse.Success(totalSubscriber));
+    }
 
 	private static async Task<IResult> GetTotalOfNewestSubscriberInDay(IDashboardRepository dashboardRepository)
 	{
 		var total = await dashboardRepository.GetTotalOfNewestSubscriberInDayAsync();
 
-		return Results.Ok(total);
-	}
+        return Results.Ok(ApiResponse.Success(total));
+    }
 }

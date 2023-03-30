@@ -15,7 +15,7 @@ public class ApiResponse
 		Errors = new List<string>();
 	}
 
-	protected static ApiResponse<T> Success<T>(T result, HttpStatusCode statusCode = HttpStatusCode.OK)
+	public static ApiResponse<T> Success<T>(T result, HttpStatusCode statusCode = HttpStatusCode.OK)
 	{
 		return new ApiResponse<T>
 		{
@@ -36,7 +36,7 @@ public class ApiResponse
 
 	public static ApiResponse Fail(HttpStatusCode statusCode, params string[] errorMessages)
 	{
-		if (errorMessages == null || errorMessages.Length == 0)
+		if (errorMessages is null or { Length: 0 })
 		{
 			throw new ArgumentNullException(nameof(errorMessages));
 		}
