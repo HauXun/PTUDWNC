@@ -1,0 +1,78 @@
+{
+  "name": "tat-blog",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/tat-blog/src",
+  "projectType": "application",
+  "targets": {
+    "build": {
+      "executor": "@nrwl/vite:build",
+      "outputs": ["{options.outputPath}"],
+      "defaultConfiguration": "production",
+      "options": {
+        "outputPath": "dist/packages/tat-blog"
+      },
+      "configurations": {
+        "development": {
+          "mode": "development"
+        },
+        "production": {
+          "mode": "production"
+        }
+      }
+    },
+    "serve": {
+      "executor": "@nrwl/vite:dev-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "tat-blog:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "tat-blog:build:development",
+          "hmr": true
+        },
+        "production": {
+          "buildTarget": "tat-blog:build:production",
+          "hmr": false
+        }
+      }
+    },
+    "preview": {
+      "executor": "@nrwl/vite:preview-server",
+      "defaultConfiguration": "development",
+      "options": {
+        "buildTarget": "tat-blog:build"
+      },
+      "configurations": {
+        "development": {
+          "buildTarget": "tat-blog:build:development"
+        },
+        "production": {
+          "buildTarget": "tat-blog:build:production"
+        }
+      }
+    },
+    "test": {
+      "executor": "@nrwl/vite:test",
+      "outputs": ["coverage/packages/tat-blog"],
+      "options": {
+        "passWithNoTests": true,
+        "reportsDirectory": "../../coverage/packages/tat-blog"
+      }
+    },
+    "lint": {
+      "executor": "@nrwl/linter:eslint",
+      "outputs": ["{options.outputFile}"],
+      "options": {
+        "lintFilePatterns": ["packages/tat-blog/**/*.{ts,tsx,js,jsx}"]
+      }
+    },
+    "serve-static": {
+      "executor": "@nrwl/web:file-server",
+      "options": {
+        "buildTarget": "tat-blog:build"
+      }
+    }
+  },
+  "tags": []
+}

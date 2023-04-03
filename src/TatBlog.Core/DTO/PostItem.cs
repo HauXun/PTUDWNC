@@ -11,6 +11,7 @@ public class PostItem
   public string ImageUrl { get; set; }
   public int ViewCount { get; set; }
   public bool Published { get; set; }
+  public DateTime PostedDate { get; set; }
   public string CategoryName { get; set; }
   public string AuthorName { get; set; }
   public IEnumerable<string> Tags { get; set; }
