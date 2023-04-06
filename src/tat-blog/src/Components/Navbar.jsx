@@ -1,10 +1,10 @@
 import React from 'react';
-import { Navbar as Nb, Nav, NavItem } from 'react-bootstrap';
+import { Navbar as Nb, Nav } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 
 function Navbar(props) {
   return (
-    <Nb collapseOnSelect expand="sm"w bg="white" variant="light" className="border-bottom shadow">
+    <Nb collapseOnSelect expand="sm" bg="white" variant="light" className="border-bottom shadow">
       <div className="container-fluid">
         <Nb.Brand href="/">Tips & Tricks</Nb.Brand>
         <Nb.Toggle aria-controls="responsive-navbar-nav" />

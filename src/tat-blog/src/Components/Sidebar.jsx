@@ -1,14 +1,19 @@
 import SearchForm from './SearchForm';
 import CategoriesWidget from './CategoriesWidget';
+import FeaturedWidget from './FeaturedPosts/FeaturedWidget';
+import TagCloudWidget from './TagCloud/TagCloudWidget';
+import ArchivesWidget from './Archives/ArchivesWidget';
+import NewsLetterForm from './NewsLetterForm/NewsLetterForm';
 
 const Sidebar = () => {
   return (
-    <div className="pt-4  ps-2">
+    <div className="pt-4 ps-2">
       <SearchForm />
       <CategoriesWidget />
-      <h1>Bài viết nổi bật</h1>
-      <h1>Đăng ký nhận tin mới</h1>
-      <h1>Tag cloud</h1>
+      <FeaturedWidget />
+      <NewsLetterForm />
+      <TagCloudWidget />
+      <ArchivesWidget />
     </div>
   );
 };

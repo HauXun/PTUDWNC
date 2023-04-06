@@ -14,8 +14,6 @@ public class SubscriberValidator : AbstractValidator<SubscriberEditModel>
 		.WithMessage("Phải là một email");
 
 		RuleFor(a => a.CancelReason)
-		.NotEmpty()
-		.WithMessage("Lý do huỷ không được để trống")
 		.MaximumLength(500)
 		.WithMessage("Lý do huỷ dài tối đa '{MaxLength}' kí tự");
 

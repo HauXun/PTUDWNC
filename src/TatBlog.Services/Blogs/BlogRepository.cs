@@ -69,9 +69,9 @@ public class BlogRepository : IBlogRepository
 	public async Task<Post> GetPostByIdAsync(int id, bool published = false, CancellationToken cancellationToken = default)
 	{
 		IQueryable<Post> postQuery = _blogContext.Set<Post>()
-								 .Include(p => p.Category)
-								 .Include(p => p.Author)
-								 .Include(p => p.Tags);
+																						.Include(p => p.Category)
+																						.Include(p => p.Author)
+																						.Include(p => p.Tags);
 
 		if (published)
 		{
@@ -98,6 +98,7 @@ public class BlogRepository : IBlogRepository
 		return await _blogContext.Set<Post>()
 								 .Include(x => x.Author)
 								 .Include(x => x.Category)
+								 .Include(x => x.Tags)
 								 .OrderByDescending(p => p.ViewCount)
 								 .Take(limit)
 								 .ToListAsync(cancellationToken);
@@ -105,7 +106,13 @@ public class BlogRepository : IBlogRepository
 
 	public async Task<IList<Post>> GetRandomPostAsync(int limit, CancellationToken cancellationToken = default)
 	{
-		return await _blogContext.Set<Post>().OrderBy(p => Guid.NewGuid()).Take(limit).ToListAsync(cancellationToken);
+		return await _blogContext.Set<Post>()
+								 .Include(x => x.Author)
+								 .Include(x => x.Category)
+								 .Include(x => x.Tags)
+								 .OrderBy(p => Guid.NewGuid())
+								 .Take(limit)
+								 .ToListAsync(cancellationToken);
 	}
 
 	public async Task<IList<DateItem>> GetArchivesPostAsync(int limit, CancellationToken cancellationToken = default)

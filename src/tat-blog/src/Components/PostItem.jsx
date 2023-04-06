@@ -19,12 +19,38 @@ const PostList = ({ postItem }) => {
           </div>
           <div className="col-md-8">
             <Card.Body>
-              <Card.Title>{postItem.title}</Card.Title>
+              <Card.Title>
+                <Link
+                  to={`/blog/post/${postedDate.getFullYear()}/${postedDate.getMonth() + 1}/${postedDate.getDate()}/${
+                    postItem.urlSlug
+                  }`}
+                  style={{ textDecoration: 'none' }}
+                  title={postItem.title}
+                >
+                  {postItem.title}
+                </Link>
+              </Card.Title>
               <Card.Text>
                 <small className="text-muted">Tác giả:</small>
-                <span className="text-primary  m-1">{postItem.authorName}</span>
+                <span className="text-primary  m-1">
+                  <Link
+                    to={`/blog/author/${postItem.author.urlSlug}`}
+                    style={{ textDecoration: 'none' }}
+                    title={postItem.author.fullName}
+                  >
+                    {postItem.author.fullName}
+                  </Link>
+                </span>
                 <small className="text-muted">Chủ đề:</small>
-                <span className="text-primary  m-1">{postItem.categoryName}</span>
+                <span className="text-primary  m-1">
+                  <Link
+                    to={`/blog/category/${postItem.category.urlSlug}`}
+                    style={{ textDecoration: 'none' }}
+                    title={postItem.category.name}
+                  >
+                    {postItem.category.name}
+                  </Link>
+                </span>
               </Card.Text>
               <Card.Text>{postItem.shortDescription}</Card.Text>
               <div className="tag-list">
@@ -32,7 +58,7 @@ const PostList = ({ postItem }) => {
               </div>
               <div className="text-end">
                 <Link
-                  to={`/blog/post?year=${postedDate.getFullYear()}&month=${postedDate.getMonth()}&day=${postedDate.getDay()}&slug=${
+                  to={`/blog/post?year=${postedDate.getFullYear()}&month=${postedDate.getMonth() + 1}&day=${postedDate.getDate()}&slug=${
                     postItem.urlSlug
                   }`}
                   className="btn  btn-primary"

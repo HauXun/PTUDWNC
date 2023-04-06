@@ -8,16 +8,17 @@ const Pager = ({ postquery, metadata }) => {
     hasPreviousPage = metadata.hasPreviousPage,
     pageNumber = metadata.pageNumber,
     pageSize = metadata.pageSize,
-    actionName = '',
-    slug = '',
-    keyword = postquery.keyword ?? '';
+    actionName = metadata.actionName ?? '',
+    slug = metadata.slug,
+    keyword = postquery.keyword ?? '',
+    restQuery = postquery.restQuery ?? '';
 
   if (pageCount > 1) {
     return (
       <div className="text-center  my-4">
         {hasPreviousPage ? (
           <Link
-            to={`/blog/${actionName}?slug=${slug}&k=${keyword}&p=${pageNumber - 1}&ps=${pageSize}`}
+            to={`/blog/${actionName}?k=${keyword}&${slug ? `slug=${slug}&` : ''}p=${pageNumber - 1}&ps=${pageSize}${restQuery}`}
             className="btn btn-info"
           >
             <FontAwesomeIcon icon={faArrowLeft} /> &nbsp;Trang trước
@@ -29,7 +30,7 @@ const Pager = ({ postquery, metadata }) => {
         )}
         {hasNextPage ? (
           <Link
-            to={`/blog/${actionName}?slug=${slug}&k=${keyword}&p=${pageNumber + 1}&ps=${pageSize}`}
+          to={`/blog/${actionName}?k=${keyword}&${slug ? `slug=${slug}&` : ''}p=${pageNumber + 1}&ps=${pageSize}${restQuery}`}
             className="btn  btn-info  ms-1"
           >
             {' '}

@@ -7,8 +7,9 @@ import Index from '../Pages/Index';
 import Contact from '../Pages/Contact';
 import About from '../Pages/About';
 import Rss from '../Pages/Rss';
+import Post from '../Components/Post/Post';
 
-export function App() {
+export default function App() {
   return (
     <div>
       <Router>
@@ -20,9 +21,17 @@ export function App() {
                 <Route path="/" element={<Layout />}>
                   <Route path="/" element={<Index />} />
                   <Route path="blog" element={<Index />} />
-                  <Route path="blog/Contact" element={<Contact />} />
-                  <Route path="blog/About" element={<About />} />
-                  <Route path="blog/RSS" element={<Rss />} />
+                  <Route path="blog/post" element={<Post />} />
+                  <Route path="blog/post/:year/:month/:day/:slug" element={<Post />} />
+                  <Route path="blog/author" element={<Index />} />
+                  <Route path="blog/author/:slug" element={<Index />} />
+                  <Route path="blog/category" element={<Index />} />
+                  <Route path="blog/category/:slug" element={<Index />} />
+                  <Route path="blog/tag" element={<Index />} />
+                  <Route path="blog/archives" element={<Index />} />
+                  <Route path="blog/contact" element={<Contact />} />
+                  <Route path="blog/about" element={<About />} />
+                  <Route path="blog/rss" element={<Rss />} />
                 </Route>
               </Routes>
             </div>
@@ -36,4 +45,3 @@ export function App() {
     </div>
   );
 }
-export default App;

@@ -16,7 +16,6 @@ const CategoriesWidget = () => {
   return (
     <div className="mb-4">
       <h3 className="text-success  mb-2">Các chủ đề</h3>
-      {console.log(categoryList.length > 0)}
       {categoryList.length > 0 && (
         <ListGroup>
           {categoryList.map((item, index) => {
@@ -25,6 +24,7 @@ const CategoriesWidget = () => {
                 <Link
                   to={`/blog/category?slug=${item.urlSlug}`}
                   title={item.description}
+                  style={{ textDecoration: 'none' }}
                   key={index}
                 >
                   {item.name}
