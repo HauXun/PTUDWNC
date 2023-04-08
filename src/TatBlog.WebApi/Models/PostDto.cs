@@ -17,8 +17,10 @@ public class PostDto
 	// Đường dấn đến tập tinh hình ảnh
 	public string ImageUrl { get; set; }
 
-	// Số lượt xem, đọc bài viết
-	public int ViewCount { get; set; }
+    public bool Published { get; set; }
+
+    // Số lượt xem, đọc bài viết
+    public int ViewCount { get; set; }
 
 	// Ngày giờ đăng bài
 	public DateTime PostedDate { get; set; }
