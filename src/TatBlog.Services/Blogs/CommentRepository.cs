@@ -72,11 +72,11 @@ public class CommentRepository : ICommentRepository
 		return rowsCount > 0;
 	}
 
-	public async Task ChangeCommentStatusAsync(int id, CancellationToken cancellationToken = default)
+	public async Task<bool> ChangeCommentStatusAsync(int id, CancellationToken cancellationToken = default)
 	{
-		await _blogContext.Set<Comment>()
-						  .Where(x => x.Id == id)
-						  .ExecuteUpdateAsync(c => c.SetProperty(x => x.Censored, x => !x.Censored), cancellationToken);
+		return await _blogContext.Set<Comment>()
+								  .Where(x => x.Id == id)
+								  .ExecuteUpdateAsync(c => c.SetProperty(x => x.Censored, x => !x.Censored), cancellationToken) > 0;
 	}
 
 	private IQueryable<Comment> FilterComments(CommentQuery query)
@@ -88,6 +88,10 @@ public class CommentRepository : ICommentRepository
 		{
 			commentQuery = commentQuery.Where(x => x.Censored);
 		}
+		else
+        {
+            commentQuery = commentQuery.Where(x => !x.Censored);
+        }
 
 		if (!string.IsNullOrWhiteSpace(query.UserName))
 		{

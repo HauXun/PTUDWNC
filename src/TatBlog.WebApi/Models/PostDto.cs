@@ -11,8 +11,16 @@ public class PostDto
 	// Mô tả hay giới thiệu ngắn về nội dung
 	public string ShortDescription { get; set; }
 
-	// Tên định danh để tạo URL
-	public string UrlSlug { get; set; }
+
+    // Nội dung chi tiết của bài viết
+    public string Description { get; set; }
+
+
+    // Metadata
+    public string Meta { get; set; }
+
+    // Tên định danh để tạo URL
+    public string UrlSlug { get; set; }
 
 	// Đường dấn đến tập tinh hình ảnh
 	public string ImageUrl { get; set; }

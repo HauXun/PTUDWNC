@@ -38,6 +38,11 @@ const Navbar = () => {
                 Bình luận
               </Link>
             </Nav.Item>
+            <Nav.Item>
+              <Link to="/admin/subscribers" className="nav-link text-dark">
+                Người đăng ký
+              </Link>
+            </Nav.Item>
           </Nav>
         </Nb.Collapse>
       </div>

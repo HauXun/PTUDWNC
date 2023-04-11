@@ -2,6 +2,7 @@
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Hosting;
 using System.Net;
 using TatBlog.Core.Collections;
@@ -43,7 +44,12 @@ public static class CommentEndpoints
 
     routeGroupBuilder.MapPost("/toggle/{id:int}", ChangeCommentStatus)
              .WithName("ChangeCommentStatus")
-             .Produces(401);
+             .Produces(401)
+             .Produces<ApiResponse<string>>();
+
+    routeGroupBuilder.MapGet("/get-filter", GetFilter)
+                     .WithName("GetCommentFilter")
+                     .Produces<ApiResponse<CommentFilterModel>>();
 
     return app;
   }
@@ -84,8 +90,11 @@ public static class CommentEndpoints
 
   private static async Task<IResult> ChangeCommentStatus(int id, ICommentRepository commentRepository)
   {
-    await commentRepository.ChangeCommentStatusAsync(id);
+    return await commentRepository.ChangeCommentStatusAsync(id) ? Results.Ok(ApiResponse.Success("Comment is switch consored", HttpStatusCode.NoContent)) : Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, $"Could not find comment with id = {id}"));
+  }
 
-    return Results.Ok();
+  private static async Task<IResult> GetFilter(IAuthorRepository authorRepository, ICategoryRepository categoryRepository)
+  {
+    return Results.Ok(ApiResponse.Success(await Task.FromResult(new CommentFilterModel())));
   }
 }

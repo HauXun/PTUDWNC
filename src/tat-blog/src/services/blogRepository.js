@@ -1,4 +1,4 @@
-import { get_api, post_api } from './method';
+import { delete_api, get_api, post_api } from './method';
 
 export async function getPosts(
   keyword = '',
@@ -8,6 +8,7 @@ export async function getPosts(
   categoryId = '',
   year = '',
   month = '',
+  publishedOnly = true,
   sortColumn = '',
   sortOrder = ''
 ) {
@@ -21,8 +22,8 @@ export async function getPosts(
   sortOrder !== '' && url.searchParams.append('SortOrder', sortOrder);
   url.searchParams.append('PageSize', pageSize);
   url.searchParams.append('PageNumber', pageNumber);
-  url.searchParams.append('PublishedOnly', true);
-  url.searchParams.append('NotPublished', false);
+  url.searchParams.append('PublishedOnly', publishedOnly);
+  url.searchParams.append('NotPublished', !publishedOnly);
 
   return get_api(url.href);
 }
@@ -64,6 +65,7 @@ export async function getPostByArchives(year = 2023, month = 1, pageSize = 10, p
     `https://localhost:7029/api/posts?PublishedOnly=true&NotPublished=false&Year=${year}&Month=${month}&PageSize=${pageSize}&PageNumber=${pageNumber}`
   );
 }
+
 export async function getPostById(id = 0) {
   if (id > 0) return get_api(`https://localhost:7029/api/posts/${id}`);
   return null;
@@ -71,4 +73,14 @@ export async function getPostById(id = 0) {
 
 export function addOrUpdatePost(formData) {
   return post_api('https://localhost:7029/api/posts', formData);
+}
+
+export async function switchPostPublished(id) {
+  if (id > 0) return post_api(`https://localhost:7029/api/posts/published/switch/${id}`);
+  return null;
+}
+
+export async function deletePostById(id) {
+  if (id > 0) return delete_api(`https://localhost:7029/api/posts/${id}`);
+  return null;
 }

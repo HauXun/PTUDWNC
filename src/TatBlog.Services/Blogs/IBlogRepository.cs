@@ -56,7 +56,7 @@ public interface IBlogRepository
 	Task IncreaseViewCountAsync(int postId, CancellationToken cancellationToken = default);
 
 	// n. Chuyển đổi trạng thái Published của bài viết. 
-	Task ChangePostStatusAsync(int id, CancellationToken cancellationToken = default);
+	Task<bool> ChangePostStatusAsync(int id, CancellationToken cancellationToken = default);
 
 	// k. Đếm số lượng bài viết trong N tháng gần nhất. N là tham số đầu vào. Kết
 	// quả là một danh sách các đối tượng chứa các thông tin sau: Năm, Tháng, Số

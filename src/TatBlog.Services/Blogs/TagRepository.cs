@@ -143,12 +143,17 @@ public class TagRepository : ITagRepository
 		IQueryable<Tag> categoryQuery = _blogContext.Set<Tag>()
 													   .Include(c => c.Posts);
 
-		if (!string.IsNullOrWhiteSpace(query.UrlSlug))
+		if (!string.IsNullOrWhiteSpace(query.Name))
 		{
-			categoryQuery = categoryQuery.Where(x => x.UrlSlug == query.UrlSlug);
+			categoryQuery = categoryQuery.Where(x => x.Name.Contains(query.Name));
 		}
 
-		if (!string.IsNullOrWhiteSpace(query.Keyword))
+        if (!string.IsNullOrWhiteSpace(query.UrlSlug))
+        {
+            categoryQuery = categoryQuery.Where(x => x.UrlSlug == query.UrlSlug);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Keyword))
 		{
 			categoryQuery = categoryQuery.Where(x => x.Name.Contains(query.Keyword) ||
 						 x.Description.Contains(query.Keyword) ||

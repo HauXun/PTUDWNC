@@ -18,5 +18,5 @@ public interface ICommentRepository
 
 	Task<bool> DeleteCommentByIdAsync(int? id, CancellationToken cancellationToken = default);
 
-	Task ChangeCommentStatusAsync(int id, CancellationToken cancellationToken = default);
+	Task<bool> ChangeCommentStatusAsync(int id, CancellationToken cancellationToken = default);
 }

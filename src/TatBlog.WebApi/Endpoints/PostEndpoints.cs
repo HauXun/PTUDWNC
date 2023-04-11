@@ -47,18 +47,18 @@ public static class PostEndpoints
 
         routeGroupBuilder.MapPost("/", AddPost)
                  .WithName("AddNewPost")
-                 .AddEndpointFilter<ValidatorFilter<PostEditModel>>()
+                 .Accepts<PostEditModel>("multipart/form-data")
+                 //.AddEndpointFilter<ValidatorFilter<PostEditModel>>()
                  .Produces(401)
                  .Produces<ApiResponse<PostItem>>();
 
-        routeGroupBuilder.MapPut("/{id:int}", UpdatePost)
-                 .WithName("UpdatePost")
-                 .AddEndpointFilter<ValidatorFilter<PostEditModel>>()
+        routeGroupBuilder.MapDelete("/{id:int}", DeletePost)
+                 .WithName("DeletePost")
                  .Produces(401)
                  .Produces<ApiResponse<string>>();
 
-        routeGroupBuilder.MapDelete("/{id:int}", DeletePost)
-                 .WithName("DeletePost")
+        routeGroupBuilder.MapPost("/published/switch/{id:int}", SwitchPublished)
+                 .WithName("SwitchPublished")
                  .Produces(401)
                  .Produces<ApiResponse<string>>();
 
@@ -73,7 +73,7 @@ public static class PostEndpoints
                  .Produces<ApiResponse<PaginationResult<Comment>>>();
 
         routeGroupBuilder.MapGet("/get-filter", GetFilter)
-                         .WithName("GetFilter")
+                         .WithName("GetPostFilter")
                          .Produces<ApiResponse<PostFilterModel>>();
 
         return app;
@@ -159,7 +159,7 @@ public static class PostEndpoints
         post.Meta = model.Meta; 
         post.Published = model.Published;
         post.ModifiedDate = DateTime.Now;
-        post.UrlSlug = model.Title.GenerateSlug();
+        post.UrlSlug = slug;
 
         if (model.ImageFile?.Length > 0)
         {
@@ -167,7 +167,7 @@ public static class PostEndpoints
             string uploadedPath = await mediaManager.SaveFileAsync(model.ImageFile.OpenReadStream(), model.ImageFile.FileName, model.ImageFile.ContentType);
             if (!string.IsNullOrWhiteSpace(uploadedPath))
             {
-                post.ImageUrl = uploadedPath;
+                post.ImageUrl = hostname + uploadedPath;
             }
         }
 
@@ -176,22 +176,14 @@ public static class PostEndpoints
         return Results.Ok(ApiResponse.Success(mapper.Map<PostItem>(post), HttpStatusCode.Created));
     }
 
-    private static async Task<IResult> UpdatePost(int id, PostEditModel model, IBlogRepository blogRepository, IMapper mapper)
-    {
-        if (await blogRepository.IsPostSlugExistedAsync(id, model.UrlSlug))
-        {
-            return Results.Ok(ApiResponse.Fail(HttpStatusCode.Conflict, $"Slug '{model.UrlSlug}' đã được sử dụng"));
-        }
-
-        var post = mapper.Map<Post>(model);
-        post.Id = id;
-
-        return await blogRepository.AddOrUpdatePostAsync(post, model.GetSelectedTags()) ? Results.Ok(ApiResponse.Success("Post is updated", HttpStatusCode.NoContent)) : Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, "Could not found post"));
-    }
-
     private static async Task<IResult> DeletePost(int id, IBlogRepository blogRepository)
     {
         return await blogRepository.DeletePostByIdAsync(id) ? Results.Ok(ApiResponse.Success("Post is deleted", HttpStatusCode.NoContent)) : Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, $"Could not find post with id = {id}"));
+    }
+
+    private static async Task<IResult> SwitchPublished(int id, IBlogRepository blogRepository)
+    {
+        return await blogRepository.ChangePostStatusAsync(id) ? Results.Ok(ApiResponse.Success("Post is switch published", HttpStatusCode.NoContent)) : Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, $"Could not find post with id = {id}"));
     }
 
     private static async Task<IResult> SetPostPicture(int id, IFormFile imageFile, IBlogRepository blogRepository, IMediaManager mediaManager)

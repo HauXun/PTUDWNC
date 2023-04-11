@@ -1,22 +1,24 @@
-import { useEffect, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
   reset,
-  updateAuthorId,
-  updateCategoryId,
   updateKeyword,
+  updateUserName,
+  updatePostTitle,
+  updateDay,
   updateMonth,
   updateYear,
-} from '../../redux/reducer';
-import { getFilter } from '../../services/blogRepository';
+  updateCensored,
+} from './commentFilterSlice';
+import { getFilter } from '../../../services/commentRepository';
+import { useEffect, useState } from 'react';
 
-const PostFilterPane = () => {
-  const postFilter = useSelector((state) => state.postFilter);
+const CommentFilterPane = () => {
+  const commentFilter = useSelector((state) => state.commentFilter);
   const dispatch = useDispatch();
-  const [filter, setFilter] = useState({ authorList: [], categoryList: [], monthList: [] });
+  const [filter, setFilter] = useState({ monthList: [] });
 
   const handleReset = (e) => {
     dispatch(reset());
@@ -30,12 +32,10 @@ const PostFilterPane = () => {
     getFilter().then((data) => {
       if (data) {
         setFilter({
-          authorList: data.authorList,
-          categoryList: data.categoryList,
           monthList: data.monthList,
         });
       } else {
-        setFilter({ authorList: [], categoryList: [], monthList: [] });
+        setFilter({ monthList: [] });
       }
     });
   }, []);
@@ -53,43 +53,29 @@ const PostFilterPane = () => {
           type="text"
           placeholder="Nhập từ khóa..."
           name="keyword"
-          value={postFilter.keyword}
+          value={commentFilter.keyword}
           onChange={(e) => dispatch(updateKeyword(e.target.value))}
         />
       </Form.Group>
       <Form.Group className="col-auto">
-        <Form.Label className="visually-hidden"> AuthorId </Form.Label>
-        <Form.Select
-          name="authorId"
-          value={postFilter.authorId}
-          onChange={(e) => dispatch(updateAuthorId(e.target.value))}
-          title="Author Id"
-        >
-          <option value="">-- Chọn tác giả --</option>
-          {filter.authorList.length > 0 &&
-            filter.authorList.map((item, index) => (
-              <option key={index} value={item.value}>
-                {item.text}
-              </option>
-            ))}
-        </Form.Select>
+        <Form.Label className="visually-hidden"> Tên người bình luận </Form.Label>
+        <Form.Control
+          type="text"
+          placeholder="Nhập tên người bình luận..."
+          name="userName"
+          value={commentFilter.userName}
+          onChange={(e) => dispatch(updateUserName(e.target.value))}
+        />
       </Form.Group>
       <Form.Group className="col-auto">
-        <Form.Label className="visually-hidden"> CategoryId </Form.Label>
-        <Form.Select
-          name="categoryId"
-          value={postFilter.categoryId}
-          onChange={(e) => dispatch(updateCategoryId(e.target.value))}
-          title="Category Id"
-        >
-          <option value="">-- Chọn chủ đề --</option>
-          {filter.categoryList.length > 0 &&
-            filter.categoryList.map((item, index) => (
-              <option key={index} value={item.value}>
-                {item.text}
-              </option>
-            ))}
-        </Form.Select>
+        <Form.Label className="visually-hidden"> Tên bài viết </Form.Label>
+        <Form.Control
+          type="text"
+          placeholder="Nhập tên bài viết..."
+          name="postTitle"
+          value={commentFilter.postTitle}
+          onChange={(e) => dispatch(updatePostTitle(e.target.value))}
+        />
       </Form.Group>
       <Form.Group className="col-auto">
         <Form.Label className="visually-hidden"> Year </Form.Label>
@@ -97,8 +83,8 @@ const PostFilterPane = () => {
           type="number"
           placeholder="Nhập năm..."
           name="year"
-          value={postFilter.year}
-          max={postFilter.year}
+          value={commentFilter.year}
+          max={commentFilter.year}
           onChange={(e) => dispatch(updateYear(e.target.value))}
         />
       </Form.Group>
@@ -106,7 +92,7 @@ const PostFilterPane = () => {
         <Form.Label className="visually-hidden"> Month </Form.Label>
         <Form.Select
           name="month"
-          value={postFilter.month}
+          value={commentFilter.month}
           onChange={(e) => dispatch(updateMonth(e.target.value))}
           title="Month"
         >
@@ -120,10 +106,32 @@ const PostFilterPane = () => {
         </Form.Select>
       </Form.Group>
       <Form.Group className="col-auto">
+        <Form.Label className="visually-hidden"> Day </Form.Label>
+        <Form.Control
+          type="number"
+          placeholder="Nhập ngày..."
+          name="day"
+          value={commentFilter.day}
+          max={commentFilter.day}
+          onChange={(e) => dispatch(updateDay(e.target.value))}
+        />
+      </Form.Group>
+      <Form.Group className="col-auto">
+        <Form.Label className="form-check-label"> Đã kiểm duyệt </Form.Label>
+        <Form.Control
+          className="form-check-input"
+          type="checkbox"
+          name="censored"
+          checked={commentFilter.censored}
+          title="Censored"
+          onChange={(e) => dispatch(updateCensored(e.target.checked))}
+        />
+      </Form.Group>
+      <Form.Group className="col-auto">
         <Button variant="danger" type="reset">
           Xóa lọc
         </Button>
-        <Link to="/admin/posts/edit" className="btn btn-success ms-2">
+        <Link to="/admin/comments/edit" className="btn btn-success ms-2">
           Thêm mới
         </Link>
       </Form.Group>
@@ -131,4 +139,4 @@ const PostFilterPane = () => {
   );
 };
 
-export default PostFilterPane;
+export default CommentFilterPane;

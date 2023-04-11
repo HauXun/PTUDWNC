@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { isInteger, decode } from '../../../utils/utils';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
-import { Link, useParams, Navigate } from 'react-router-dom';
+import { Link, useParams, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { isEmptyOrSpaces } from '../../../utils/utils';
 import { addOrUpdatePost, getFilter, getPostById } from '../../../services/blogRepository';
 
@@ -29,6 +29,9 @@ const Edit = () => {
   let { id } = useParams();
   id = id ?? 0;
 
+  const navigate = useNavigate();
+  const location = useLocation();
+
   useEffect(() => {
     document.title = 'Thêm/cập nhật bài viết';
     getPostById(id).then((data) => {
@@ -48,11 +51,14 @@ const Edit = () => {
       setValidated(true);
     } else {
       let form = new FormData(e.target);
-      form.append('published', true);
+      form.append('published', post.published);
       // const data = Object.fromEntries(form.entries());
       addOrUpdatePost(form).then((data) => {
-        if (data) alert('Đã lưu thành công!');
-        else alert('Đã xảy ra lỗi!');
+        if (data) {
+          alert('Đã lưu thành công!');
+          const { from } = location.state || {};
+          navigate(from?.pathname || '/admin/posts', { replace: true });
+        } else alert('Đã xảy ra lỗi!');
       });
     }
   };

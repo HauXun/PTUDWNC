@@ -15,6 +15,7 @@ import { useQuery } from '../utils/utils';
 const Index = () => {
   const [postList, setPostList] = useState([]);
   const [metadata, setMetadata] = useState({});
+  const [postQuery, setPostQuery] = useState({});
   const { pathname } = useLocation();
   const { slug: dynamicSlug } = useParams();
 
@@ -63,8 +64,9 @@ const Index = () => {
       getPostByArchives(year, month, ps, p).then((data) => {
         if (data.items) {
           data.metadata.actionName = 'archives';
-          data.postQuery = data.postQuery ?? {};
-          data.postQuery.restQuery = `&year=${year}&month=${month}`;
+          setPostQuery((pre) => {
+            return { ...pre, restQuery: `&year=${year}&month=${month}` };
+          });
           setPostList(data.items);
           setMetadata(data.metadata);
         } else setPostList([]);
@@ -92,7 +94,7 @@ const Index = () => {
           {postList.map((item, index) => {
             return <PostItem postItem={item} key={index} />;
           })}
-          <Pager postQuery={{ keyword: k }} metadata={metadata} />
+          <Pager postQuery={{ ...postQuery, keyword: k }} metadata={metadata} />
         </div>
       </>
     );

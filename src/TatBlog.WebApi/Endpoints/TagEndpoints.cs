@@ -7,6 +7,7 @@ using TatBlog.Core.Collections;
 using TatBlog.Core.DTO;
 using TatBlog.Core.Entities;
 using TatBlog.Services.Blogs;
+using TatBlog.Services.Extensions;
 using TatBlog.WebApi.Filters;
 using TatBlog.WebApi.Models;
 
@@ -37,15 +38,10 @@ public static class TagEndpoints
 
     routeGroupBuilder.MapPost("/", AddTag)
              .WithName("AddNewTag")
-             .AddEndpointFilter<ValidatorFilter<TagEditModel>>()
+             .Accepts<TagEditModel>("multipart/form-data")
+             //.AddEndpointFilter<ValidatorFilter<TagEditModel>>()
              .Produces(401)
              .Produces<ApiResponse<TagItem>>();
-
-    routeGroupBuilder.MapPut("/{id:int}", UpdateTag)
-             .WithName("UpdateTag")
-             .AddEndpointFilter<ValidatorFilter<TagEditModel>>()
-             .Produces(401)
-             .Produces<ApiResponse<string>>();
 
     routeGroupBuilder.MapDelete("/{id:int}", DeleteTag)
              .WithName("DeleteTag")
@@ -78,7 +74,7 @@ public static class TagEndpoints
   {
     var tag = await tagRepository.GetCachedTagByIdAsync(id);
 
-    return tag == null ? Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, $"Không tìm thấy thẻ có mã số {id}")) : Results.Ok(ApiResponse.Success(mapper.Map<AuthorItem>(tag)));
+    return tag == null ? Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, $"Không tìm thấy thẻ có mã số {id}")) : Results.Ok(ApiResponse.Success(mapper.Map<TagItem>(tag)));
   }
 
   private static async Task<IResult> GetPostByTagSlug([FromRoute] string slug, [AsParameters] PagingModel pagingModel, IBlogRepository blogRepository)
@@ -96,30 +92,28 @@ public static class TagEndpoints
     return Results.Ok(ApiResponse.Success(paginationResult));
   }
 
-  private static async Task<IResult> AddTag(TagEditModel model, ITagRepository tagRepository, IMapper mapper)
+  private static async Task<IResult> AddTag(HttpContext context, ITagRepository tagRepository, IMapper mapper)
   {
-    if (await tagRepository.CheckTagSlugExisted(0, model.UrlSlug))
+    var model = await TagEditModel.BindAsync(context);
+    var slug = model.Name.GenerateSlug();
+
+    if (await tagRepository.CheckTagSlugExisted(model.Id, slug))
     {
-      return Results.Conflict($"Slug '{model.UrlSlug}' đã được sử dụng");
+      return Results.Conflict($"Slug '{slug}' đã được sử dụng");
     }
 
-    var tag = mapper.Map<Tag>(model);
+    var tag = model.Id > 0 ? await tagRepository.GetTagByIdAsync(model.Id) : null;
+    if (tag == null)
+    {
+        tag = new Tag();
+    }
+    tag.Name = model.Name;
+    tag.Description = model.Description;
+    tag.UrlSlug = slug;
+
     await tagRepository.AddOrUpdateTagAsync(tag);
 
-    return Results.Ok(ApiResponse.Success(mapper.Map<AuthorItem>(tag), HttpStatusCode.Created));
-  }
-
-  private static async Task<IResult> UpdateTag(int id, TagEditModel model, ITagRepository tagRepository, IMapper mapper)
-  {
-    if (await tagRepository.CheckTagSlugExisted(id, model.UrlSlug))
-    {
-      return Results.Ok(ApiResponse.Fail(HttpStatusCode.BadRequest, $"Slug '{model.UrlSlug}' đã được sử dụng"));
-    }
-
-    var tag = mapper.Map<Tag>(model);
-    tag.Id = id;
-
-    return await tagRepository.AddOrUpdateTagAsync(tag) ? Results.Ok(ApiResponse.Success("Tag is updated", HttpStatusCode.NoContent)) : Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, "Could not found tag"));
+    return Results.Ok(ApiResponse.Success(mapper.Map<TagItem>(tag), HttpStatusCode.Created));
   }
 
   private static async Task<IResult> DeleteTag(int id, ITagRepository tagRepository)

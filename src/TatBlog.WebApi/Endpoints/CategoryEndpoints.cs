@@ -7,6 +7,7 @@ using TatBlog.Core.Collections;
 using TatBlog.Core.DTO;
 using TatBlog.Core.Entities;
 using TatBlog.Services.Blogs;
+using TatBlog.Services.Extensions;
 using TatBlog.WebApi.Filters;
 using TatBlog.WebApi.Models;
 
@@ -33,19 +34,20 @@ public static class CategoryEndpoints
 
 		routeGroupBuilder.MapPost("/", AddCategory)
 						 .WithName("AddNewCategory")
-						 .AddEndpointFilter<ValidatorFilter<CategoryEditModel>>()
-						 .Produces<ApiResponse<CategoryItem>>();
-
-		routeGroupBuilder.MapPut("/{id:int}", UpdateCategory)
-						 .WithName("UpdateCategory")
-						 .AddEndpointFilter<ValidatorFilter<CategoryEditModel>>()
-						 .Produces<ApiResponse<string>>();
+						 .Accepts<CategoryEditModel>("multipart/form-data")
+                         //.AddEndpointFilter<ValidatorFilter<CategoryEditModel>>()
+                         .Produces<ApiResponse<CategoryItem>>();
 
 		routeGroupBuilder.MapDelete("/{id:int}", DeleteCategory)
 						 .WithName("DeleteCategory")
 						 .Produces<ApiResponse<string>>();
 
-		return app;
+        routeGroupBuilder.MapPost("/show/switch/{id:int}", SwitchShowOn)
+						 .WithName("SwitchShowOn")
+						 .Produces(401)
+						 .Produces<ApiResponse<string>>();
+
+        return app;
 	}
 
 	private static async Task<IResult> GetCategories([AsParameters] CategoryFilterModel model, ICategoryRepository categoryRepository, IMapper mapper)
@@ -94,34 +96,38 @@ public static class CategoryEndpoints
 		return Results.Ok(ApiResponse.Success(paginationResult));
 	}
 
-	private static async Task<IResult> AddCategory(CategoryEditModel model, ICategoryRepository categoryRepository, IMapper mapper)
-	{
-		if (await categoryRepository.CheckCategorySlugExisted(0, model.UrlSlug))
+	private static async Task<IResult> AddCategory(HttpContext context, ICategoryRepository categoryRepository, IMapper mapper)
+    {
+        var model = await CategoryEditModel.BindAsync(context);
+        var slug = model.Name.GenerateSlug();
+
+        if (await categoryRepository.CheckCategorySlugExisted(model.Id, slug))
 		{
-			return Results.Conflict($"Slug '{model.UrlSlug}' đã được sử dụng");
+			return Results.Conflict($"Slug '{slug}' đã được sử dụng");
 		}
 
-		var category = mapper.Map<Category>(model);
-		await categoryRepository.AddOrUpdateCategoryAsync(category);
+        var category = model.Id > 0 ? await categoryRepository.GetCategoryByIdAsync(model.Id) : null;
+        if (category == null)
+        {
+            category = new Category();
+        }
+        category.Name = model.Name;
+        category.Description = model.Description;
+        category.ShowOnMenu = model.ShowOnMenu;
+        category.UrlSlug = slug;
+
+        await categoryRepository.AddOrUpdateCategoryAsync(category);
 
         return Results.Ok(ApiResponse.Success(mapper.Map<CategoryItem>(category), HttpStatusCode.Created));
-    }
-
-	private static async Task<IResult> UpdateCategory(int id, CategoryEditModel model, ICategoryRepository categoryRepository, IMapper mapper)
-	{
-		if (await categoryRepository.CheckCategorySlugExisted(id, model.UrlSlug))
-        {
-            return Results.Ok(ApiResponse.Fail(HttpStatusCode.BadRequest, $"Slug '{model.UrlSlug}' đã được sử dụng"));
-        }
-
-		var category = mapper.Map<Category>(model);
-		category.Id = id;
-
-        return await categoryRepository.AddOrUpdateCategoryAsync(category) ? Results.Ok(ApiResponse.Success("Category is updated", HttpStatusCode.NoContent)) : Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, "Could not found category"));
     }
 
 	private static async Task<IResult> DeleteCategory(int id, ICategoryRepository categoryRepository)
     {
         return await categoryRepository.DeleteCategoryByIdAsync(id) ? Results.Ok(ApiResponse.Success("Category is deleted", HttpStatusCode.NoContent)) : Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, $"Could not find category with id = {id}"));
+    }
+
+    private static async Task<IResult> SwitchShowOn(int id, ICategoryRepository categoryRepository)
+    {
+        return await categoryRepository.ChangeCategoryStatusAsync(id) ? Results.Ok(ApiResponse.Success("Category is switched show", HttpStatusCode.NoContent)) : Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, $"Could not find category with id = {id}"));
     }
 }

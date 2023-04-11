@@ -226,14 +226,14 @@ public class BlogRepository : IBlogRepository
                           .ExecuteUpdateAsync(p => p.SetProperty(x => x.ViewCount, x => x.ViewCount + 1), cancellationToken);
     }
 
-    public async Task ChangePostStatusAsync(int id, CancellationToken cancellationToken = default)
+    public async Task<bool> ChangePostStatusAsync(int id, CancellationToken cancellationToken = default)
     {
         var post = await _blogContext.Posts.FindAsync(id);
 
         post.Published = !post.Published;
 
         _blogContext.Attach(post).State = EntityState.Modified;
-        await _blogContext.SaveChangesAsync();
+        return await _blogContext.SaveChangesAsync() > 0;
     }
 
     public async Task<IList<PostInMonthItem>> CountPostInMonthAsync(int monthCount, CancellationToken cancellationToken = default)

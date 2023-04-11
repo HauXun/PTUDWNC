@@ -2,11 +2,13 @@
 using Mapster;
 using MapsterMapper;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 using System.Net;
 using TatBlog.Core.Collections;
 using TatBlog.Core.DTO;
 using TatBlog.Core.Entities;
 using TatBlog.Services.Blogs;
+using TatBlog.Services.Extensions;
 using TatBlog.Services.Media;
 using TatBlog.WebApi.Filters;
 using TatBlog.WebApi.Models;
@@ -34,15 +36,10 @@ public static class AuthorEndpoints
 
 		routeGroupBuilder.MapPost("/", AddAuthor)
 						 .WithName("AddNewAuthor")
-						 .AddEndpointFilter<ValidatorFilter<AuthorEditModel>>()
+						 .Accepts<AuthorEditModel>("multipart/form-data")
+                         //.AddEndpointFilter<ValidatorFilter<AuthorEditModel>>()
 						 .Produces(401)
                          .Produces<ApiResponse<AuthorItem>>(); ;
-
-		routeGroupBuilder.MapPut("/{id:int}", UpdateAuthor)
-						 .WithName("UpdateAuthor")
-						 .AddEndpointFilter<ValidatorFilter<AuthorEditModel>>()
-						 .Produces(401)
-						 .Produces<ApiResponse<string>>();
 
 		routeGroupBuilder.MapDelete("/{id:int}", DeleteAuthor)
 						 .WithName("DeleteAuthor")
@@ -109,30 +106,39 @@ public static class AuthorEndpoints
 		return Results.Ok(ApiResponse.Success(paginationResult));
 	}
 
-	private static async Task<IResult> AddAuthor(AuthorEditModel model, IAuthorRepository authorRepository, IMapper mapper)
-	{
-		if (await authorRepository.CheckAuthorSlugExisted(0, model.UrlSlug))
+	private static async Task<IResult> AddAuthor(HttpContext context, IAuthorRepository authorRepository, IMapper mapper, IMediaManager mediaManager)
+    {
+        var model = await AuthorEditModel.BindAsync(context);
+        var slug = model.FullName.GenerateSlug();
+
+        if (await authorRepository.CheckAuthorSlugExisted(model.Id, slug))
 		{
-			return Results.Ok(ApiResponse.Fail(HttpStatusCode.Conflict, $"Slug '{model.UrlSlug}' đã được sử dụng"));
+			return Results.Ok(ApiResponse.Fail(HttpStatusCode.Conflict, $"Slug '{slug}' đã được sử dụng"));
 		}
 
-		var author = mapper.Map<Author>(model);
-		await authorRepository.AddOrUpdateAuthorAsync(author);
+        var author = model.Id > 0 ? await authorRepository.GetAuthorByIdAsync(model.Id) : null;
+        if (author == null)
+        {
+            author = new Author() { JoinedDate = DateTime.Now };
+        }
+        author.FullName = model.FullName;
+        author.Email = model.Email;
+        author.Notes = model.Notes;
+        author.UrlSlug = slug;
+
+        if (model.ImageFile?.Length > 0)
+        {
+            string hostname = $"{context.Request.Scheme}://{context.Request.Host}{context.Request.PathBase}/";
+            string uploadedPath = await mediaManager.SaveFileAsync(model.ImageFile.OpenReadStream(), model.ImageFile.FileName, model.ImageFile.ContentType);
+            if (!string.IsNullOrWhiteSpace(uploadedPath))
+            {
+                author.ImageUrl = hostname + uploadedPath;
+            }
+        }
+
+        await authorRepository.AddOrUpdateAuthorAsync(author);
 
 		return Results.Ok(ApiResponse.Success(mapper.Map<AuthorItem>(author), HttpStatusCode.Created));
-	}
-
-	private static async Task<IResult> UpdateAuthor(int id, AuthorEditModel model, IAuthorRepository authorRepository, IMapper mapper)
-	{
-		if (await authorRepository.CheckAuthorSlugExisted(id, model.UrlSlug))
-		{
-			return Results.Ok(ApiResponse.Fail(HttpStatusCode.BadRequest, $"Slug '{model.UrlSlug}' đã được sử dụng"));
-		}
-
-		var author = mapper.Map<Author>(model);
-		author.Id = id;
-
-		return await authorRepository.AddOrUpdateAuthorAsync(author) ? Results.Ok(ApiResponse.Success("Author is updated", HttpStatusCode.NoContent)) : Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, "Could not found author"));
 	}
 
 	private static async Task<IResult> DeleteAuthor(int id, IAuthorRepository authorRepository)

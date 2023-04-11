@@ -96,7 +96,7 @@ public static class SubscriberEndpoints
         return await subscriberRepository.DeleteSubscriberAsync(Convert.ToInt32(id)) ? Results.Ok(ApiResponse.Success("Subscriber is deleted", HttpStatusCode.NoContent)) : Results.Ok(ApiResponse.Fail(HttpStatusCode.NotFound, $"Could not find subscriber with id = {id}"));
     }
 
-	private static async Task<IResult> BlockSubscriber(int id, SubscriberEditModel model, ISubscriberRepository subscriberRepository, IMapper mapper)
+	private static async Task<IResult> BlockSubscriber(int id, [AsParameters] SubscriberEditModel model, ISubscriberRepository subscriberRepository, IMapper mapper)
 	{
 		var subscriber = mapper.Map<Subscriber>(model);
 		subscriber.Id = id;

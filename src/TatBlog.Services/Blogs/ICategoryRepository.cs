@@ -38,5 +38,5 @@ public interface ICategoryRepository
 	// i. Kiểm tra tên định danh (slug) của một chuyên mục đã tồn tại hay chưa. 
 	Task<bool> CheckCategorySlugExisted(int id, string slug, CancellationToken cancellationToken = default);
 
-	Task ChangeCategoryStatusAsync(int id, CancellationToken cancellationToken = default);
+	Task<bool> ChangeCategoryStatusAsync(int id, CancellationToken cancellationToken = default);
 }

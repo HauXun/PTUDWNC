@@ -11,16 +11,21 @@ const Pager = ({ postQuery, metadata }) => {
     actionName = metadata.actionName ?? '',
     slug = metadata.slug,
     keyword = postQuery.keyword ?? '',
-    restQuery = postQuery.restQuery ?? '';
+    restQuery = postQuery.restQuery ?? '',
+    to = postQuery.to;
 
   if (pageCount > 1) {
     return (
       <div className="text-center  my-4">
         {hasPreviousPage ? (
           <Link
-            to={`/blog/${actionName}?k=${keyword}&${slug ? `slug=${slug}&` : ''}p=${
-              pageNumber - 1
-            }&ps=${pageSize}${restQuery}`}
+            to={
+              to
+                ? `${to}?p=${pageNumber - 1}&ps=${pageSize}${restQuery}`
+                : `/blog/${actionName}?k=${keyword}&${slug ? `slug=${slug}&` : ''}p=${
+                    pageNumber - 1
+                  }&ps=${pageSize}${restQuery}`
+            }
             className="btn btn-info"
           >
             <FontAwesomeIcon icon={faArrowLeft} /> &nbsp;Trang trước
@@ -32,9 +37,13 @@ const Pager = ({ postQuery, metadata }) => {
         )}
         {hasNextPage ? (
           <Link
-            to={`/blog/${actionName}?k=${keyword}&${slug ? `slug=${slug}&` : ''}p=${
-              pageNumber + 1
-            }&ps=${pageSize}${restQuery}`}
+            to={
+              to
+                ? `${to}?p=${pageNumber + 1}&ps=${pageSize}${restQuery}`
+                : `/blog/${actionName}?k=${keyword}&${slug ? `slug=${slug}&` : ''}p=${
+                    pageNumber + 1
+                  }&ps=${pageSize}${restQuery}`
+            }
             className="btn  btn-info  ms-1"
           >
             Trang sau&nbsp;
